@@ -440,7 +440,117 @@
     var g = e.target.closest('.trim-handle');
     if (g) { var d = g.querySelector('.trim-dot-el'); if (d) d.setAttribute('r', '3.5'); }
   }
+  /* ── Double-click handle editor ────────────────────────────────────────────── */
+  function openHandleEditor(handleType, arcIdx, screenX, screenY) {
+    var existing = document.getElementById('circle-handle-editor');
+    if (existing) existing.remove();
 
+    var cs  = window.CircleState;
+    var arc = cs.arcs[arcIdx];
+    if (!arc) return;
+
+    var cent = centroidAngle(arc.left, arc.right);
+    var span = arcSpan(arc.left, arc.right);
+
+    /* ±180° display convention: 0 = top, clockwise = positive, CCW = negative */
+    function toDisplay(internal) {
+      var d = ((internal % 360) + 360) % 360;
+      return d > 180 ? d - 360 : d;   // maps 0-359 → -180..180
+    }
+    function toInternal(display) {
+      return ((Math.round(display) % 360) + 360) % 360;
+    }
+
+    var label, currentVal, minVal, maxVal;
+
+    switch (handleType) {
+      case 'trim-left':
+        label = 'Angolo sinistro (°)';  currentVal = toDisplay(arc.left);  minVal = -180; maxVal = 180; break;
+      case 'trim-right':
+        label = 'Angolo destro (°)';    currentVal = toDisplay(arc.right); minVal = -180; maxVal = 180; break;
+      case 'centroid':
+        label = 'Centroide (°)';        currentVal = toDisplay(cent);      minVal = -180; maxVal = 180; break;
+      case 'origin':
+        label = 'Apertura (°)';         currentVal = Math.round(span);     minVal = 1;    maxVal = 359; break;
+      default: return;
+    }
+
+    var wrap = document.createElement('div');
+    wrap.id = 'circle-handle-editor';
+    wrap.innerHTML =
+      '<span class="che-label">' + label + '</span>' +
+      '<input class="che-input mono" type="number" min="' + minVal +
+      '" max="' + maxVal + '" value="' + currentVal + '" autocomplete="off">';
+
+    document.body.appendChild(wrap);
+    var pw = wrap.offsetWidth, ph = wrap.offsetHeight;
+    var vw = window.innerWidth,  vh = window.innerHeight;
+    var x  = Math.min(screenX + 10, vw - pw - 10);
+    var y  = screenY - ph - 10;
+    if (y < 8) y = screenY + 14;
+    wrap.style.left = x + 'px';
+    wrap.style.top  = y + 'px';
+
+    var input = wrap.querySelector('.che-input');
+    input.focus();
+    input.select();
+
+    function dismiss() {
+      var el = document.getElementById('circle-handle-editor');
+      if (el) el.remove();
+    }
+
+    function applyValue() {
+      if (!document.getElementById('circle-handle-editor')) return; // already dismissed
+      var raw = parseFloat(input.value);
+      if (isNaN(raw)) { dismiss(); return; }
+
+      if (handleType === 'origin') {
+        var newSpan = Math.max(1, Math.min(359, Math.round(raw)));
+        var nL = norm(cent - newSpan / 2);
+        var nR = norm(cent + newSpan / 2);
+        if (!wouldOverlap(arcIdx, nL, nR)) { arc.left = nL; arc.right = nR; }
+
+      } else {
+        var deg = toInternal(raw);
+        if (handleType === 'trim-left') {
+          if (arcSpan(deg, arc.right) > 1 && !wouldOverlap(arcIdx, deg, arc.right))
+            arc.left = deg;
+        } else if (handleType === 'trim-right') {
+          if (arcSpan(arc.left, deg) > 1 && !wouldOverlap(arcIdx, arc.left, deg))
+            arc.right = deg;
+        } else if (handleType === 'centroid') {
+          var half = span / 2;
+          var cL = norm(deg - half);
+          var cR = norm(deg + half);
+          if (!wouldOverlap(arcIdx, cL, cR)) { arc.left = cL; arc.right = cR; }
+        }
+      }
+
+      if (window.ArcsAPI) window.ArcsAPI.autosave();
+      if (window.ArcsAPI && window.AppBridge)
+        cs.positionAngle = window.ArcsAPI.computePositionAngle(window.AppBridge.getReadheadPos());
+      draw();
+      dismiss();
+    }
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter')  { applyValue(); e.preventDefault(); }
+      if (e.key === 'Escape') { dismiss();    e.preventDefault(); }
+    });
+    input.addEventListener('blur', function () {
+      setTimeout(applyValue, 60); // allow Enter keydown to fire first
+    });
+  }
+
+  function onDblClick(e) {
+    var handle = e.target.closest('[data-handle]');
+    if (!handle) return;
+    e.preventDefault();
+    var cs = window.CircleState;
+    var arcIdx = cs.hovered >= 0 ? cs.hovered : cs.selected;
+    openHandleEditor(handle.dataset.handle, arcIdx, e.clientX, e.clientY);
+  }
   /* ── Init ───────────────────────────────────────────────────────────────── */
   function init() {
     var svg = document.getElementById('nav-circle');
@@ -452,6 +562,7 @@
     svg.addEventListener('touchstart', onDown, { passive: false });
     svg.addEventListener('mouseover',  onOver);
     svg.addEventListener('mouseout',   onOut);
+    svg.addEventListener('dblclick',   onDblClick);
 
     window.addEventListener('mousemove', onMove);
     window.addEventListener('touchmove', onMove, { passive: false });

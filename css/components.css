@@ -250,7 +250,42 @@
   transition: color 0.1s, background 0.1s;
 }
 .rh-rand-btn:hover { color: var(--accent); background: var(--accent-fill); }
-
+/* ── HANDLE EDITOR popup (double-click precise value entry) ──────────────────── */
+#circle-handle-editor {
+  position: fixed;
+  z-index: 2000;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.14);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 148px;
+}
+.che-label {
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  user-select: none;
+}
+.che-input {
+  font-family: var(--font-mono);
+  font-size: var(--sz-base);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-sm);
+  padding: 3px 6px;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.che-input::-webkit-inner-spin-button,
+.che-input::-webkit-outer-spin-button { opacity: 0.4; }
+.che-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-fill); }
 /* ── SPAT SELECTOR (params footer) ─────────────────────────────────────────── */
 .spat-row {
   display: flex;
