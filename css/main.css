@@ -1,0 +1,275 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   IN-GLOBO  —  main.css
+   Variables, reset, layout structure
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── DESIGN TOKENS ─────────────────────────────────────────────────────────── */
+:root {
+  /* Colours */
+  --bg:              #EDECEA;
+  --surface:         #F5F4F2;
+  --white:           #FFFFFF;
+  --border:          #CBC8C3;
+  --border-strong:   #ACABAA; /* fixed: removed stray comma */
+  --text:            #1B1A18;
+  --text-2:          #585450;
+  --text-3:          #9A9590;
+  --accent:          #2D4A7A;
+  --accent-hover:    #3A5E98;
+  --accent-fill:     rgba(45, 74, 122, 0.07);
+  --accent-mid:      rgba(45, 74, 122, 0.28);
+  --accent-light:    #E8EEF8;
+
+  /* Typography */
+  --font:            Arial, Helvetica, sans-serif;
+  --font-mono:       'JetBrains Mono', 'Menlo', monospace;
+
+  /* Sizes */
+  --sz-xs:  9px;
+  --sz-sm:  10px;
+  --sz-base:11px;
+  --sz-md:  12px;
+
+  /* Radii */
+  --r-sm:   2px;
+  --r:      3px;
+  --r-md:   4px;
+
+  /* Layout constants */
+  --hdr-h:    36px;
+  --rh-h:     34px;     /* readhead bar height (matches params footer) */
+  --footer-h: 34px;     /* params footer height */
+  --circle-w: 52%;      /* circle section default width (user-resizable) */
+}
+
+/* ── RESET ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: var(--font);
+  font-size: var(--sz-base);
+  color: var(--text);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  line-height: 1;
+}
+
+select, input {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+ul { list-style: none; }
+
+/* ── PLUGIN WINDOW ──────────────────────────────────────────────────────────── */
+.plugin-window {
+  position: relative;
+  width:  100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ── PANEL ──────────────────────────────────────────────────────────────────── */
+.panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+
+.panel.overlay {
+  z-index: 10;
+  background: var(--surface);
+}
+
+.panel.overlay[hidden] { display: none; }
+
+/* ── PANEL HEADER ───────────────────────────────────────────────────────────── */
+.panel-header {
+  flex: 0 0 var(--hdr-h);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── PANEL BODY ─────────────────────────────────────────────────────────────── */
+.panel-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+/* Draggable divider between circle section and params section */
+.panel-resize-handle {
+  width: 5px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: var(--border);
+  transition: background 0.15s;
+  position: relative;
+  z-index: 2;
+}
+.panel-resize-handle:hover,
+.panel-resize-handle.dragging { background: var(--accent); }
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN PANEL  –  two-column layout
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── CIRCLE SECTION (left column) ──────────────────────────────────────────── */
+.circle-section {
+  flex: 0 0 var(--circle-w);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Upper part: SVG circle + height control */
+.circle-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 10px 4px 8px 10px;
+  gap: 6px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+#nav-circle {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  max-height: 100%;
+  max-width: 100%;
+  overflow: visible;
+  display: block;
+}
+
+/* Height slider controls to the right of the circle */
+.height-control {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px 6px 0;
+  min-width: 36px;
+}
+
+.height-track {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-height: 0;
+}
+
+/* Readhead bar (bottom of circle section) */
+.readhead-bar {
+  flex: 0 0 var(--rh-h);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px 0 10px;
+  border-top: 1px solid var(--border);
+  background: var(--white);
+}
+
+/* ── PARAMS SECTION (right column) ─────────────────────────────────────────── */
+.params-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Algorithm tab bar at top of params section */
+.params-tab-bar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+
+.module-params {
+  flex: 1;
+  padding: 14px 16px 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.params-footer {
+  flex: 0 0 var(--footer-h);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-top: 1px solid var(--border);
+  background: var(--white);
+}
+
+/* Slave diagonal-line indicator – absolute, bottom-right corner */
+.slave-canvas {
+  position: absolute;
+  bottom: var(--footer-h);  /* sits just above the footer */
+  right: 0;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECONDARY PANEL  –  two-column settings layout
+   ═══════════════════════════════════════════════════════════════════════════ */
+.settings-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.settings-left {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.settings-right {
+  flex: 0 0 38%;
+  border-left: 1px solid var(--border);
+  padding: 16px;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* ── UTILITY ────────────────────────────────────────────────────────────────── */
+.mono { font-family: var(--font-mono); }

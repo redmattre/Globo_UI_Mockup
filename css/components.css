@@ -1,0 +1,580 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   IN-GLOBO  —  components.css
+   All reusable UI component styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── LOGO BUTTON ────────────────────────────────────────────────────────────── */
+.logo-btn {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  color: var(--accent);
+  border-radius: var(--r);
+  transition: background 0.12s, color 0.12s;
+}
+.logo-btn:hover    { background: var(--accent-fill); }
+.logo-btn.active-logo,
+.logo-btn.active   { background: var(--accent-fill); }
+
+/* ── INSTANCE BADGE (read-only, placed right in header) ───────────────────── */
+.instance-badge {
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+/* Right-side group: ψ button + instance badge */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 6px;
+}
+
+/* ── TAB BAR ────────────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* When tab-bar lives inside the params section it must NOT stretch vertically */
+.params-tab-bar {
+  flex: 0 0 auto;
+  overflow: visible;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 4px 10px;
+  font-size: var(--sz-base);
+  color: var(--text-2);
+  border-radius: var(--r);
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
+}
+.tab:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+.tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+.tab.future {
+  opacity: 0.28;
+  pointer-events: none;
+  font-style: italic;
+}
+
+/* ── GS TOGGLE (global / stray) ─────────────────────────────────────────────── */
+.gs-toggle {
+  display: flex;
+  margin-left: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.gs-btn {
+  padding: 3px 9px;
+  font-family: var(--font-mono);
+  font-size: var(--sz-xs);
+  color: var(--text-2);
+  background: transparent;
+  transition: background 0.1s, color 0.1s;
+}
+.gs-btn + .gs-btn { border-left: 1px solid var(--border-strong); }
+.gs-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── HEIGHT CONTROLS ────────────────────────────────────────────────────────── */
+.height-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mode-btn {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  color: var(--text-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+}
+.mode-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.mode-btn:hover:not(.active) { background: var(--bg); }
+
+.height-lbl {
+  font-family: var(--font-mono);
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+  line-height: 1;
+}
+.height-val {
+  font-size: var(--sz-xs);
+  color: var(--accent);
+  min-width: 28px;
+  text-align: center;
+  line-height: 1;
+}
+
+/* ── VERTICAL SLIDER (height) ───────────────────────────────────────────────── */
+.vertical-slider {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  flex: 1;
+  width: 18px;
+  min-height: 60px;
+  accent-color: var(--accent);
+}
+
+/* ── READHEAD BAR ───────────────────────────────────────────────────────────── */
+.rh-angle {
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  min-width: 28px;
+}
+.rh-angle:first-child { text-align: right; }
+
+.rh-track-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  min-width: 0;
+}
+
+.rh-track {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.rh-dots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.rh-dot {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.rh-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -56%);
+  width: 0;
+  height: 0;
+  border-left:  6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top:   9px solid var(--accent);
+  cursor: grab;
+  pointer-events: all;
+  transition: border-top-color 0.1s;
+}
+.rh-marker:active { cursor: grabbing; }
+.rh-marker:hover  { border-top-color: var(--accent-hover); }
+
+.rh-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.rh-ease-row,
+.rh-force-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rh-ease-sel {
+  font-family: var(--font-mono);
+  font-size: var(--sz-xs);
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 2px 3px;
+  cursor: pointer;
+}
+.rh-ease-sel:focus { outline: 1px solid var(--accent); }
+
+.rh-force-slider {
+  width: 52px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.rh-force-val {
+  font-size: var(--sz-xs);
+  color: var(--text-2);
+  min-width: 28px;
+}
+
+.rh-rand-btn {
+  font-size: 11px;
+  color: var(--text-3);
+  padding: 1px 2px;
+  border-radius: var(--r-sm);
+  transition: color 0.1s, background 0.1s;
+}
+.rh-rand-btn:hover { color: var(--accent); background: var(--accent-fill); }
+
+/* ── SPAT SELECTOR (params footer) ─────────────────────────────────────────── */
+.spat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.spat-lbl {
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.spat-sel {
+  font-size: var(--sz-base);
+  font-weight: 500;
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.spat-sel:focus { outline: 1px solid var(--accent); border-radius: var(--r-sm); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODULE PARAMETER PANELS
+   ═══════════════════════════════════════════════════════════════════════════ */
+.section-title {
+  font-size: var(--sz-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  padding-bottom: 5px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  margin-top: 4px;
+}
+.section-title:first-child { margin-top: 0; }
+
+.param-group {
+  margin-bottom: 14px;
+}
+
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.param-name {
+  font-size: var(--sz-base);
+  color: var(--text-2);
+  min-width: 88px;
+  flex-shrink: 0;
+}
+
+.param-slider {
+  flex: 1;
+  accent-color: var(--accent);
+  cursor: pointer;
+  min-width: 0;
+}
+
+.param-value {
+  font-family: var(--font-mono);
+  font-size: var(--sz-xs);
+  color: var(--text-2);
+  min-width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── SEGMENTED CONTROL ──────────────────────────────────────────────────────── */
+.seg-control {
+  display: flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.seg-btn {
+  flex: 1;
+  padding: 4px 7px;
+  font-size: var(--sz-sm);
+  color: var(--text-2);
+  background: transparent;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s;
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+.seg-btn:hover:not(.active) { background: var(--bg); }
+
+/* ── SVG HANDLES (circle) ──────────────────────────────────────────────────── */
+.svg-handle { cursor: grab; }
+.svg-handle:active { cursor: grabbing; }
+
+/* Trim handle hover: enlarged via JS (r attribute) + CSS filter */
+.trim-handle { cursor: ew-resize; }
+.trim-handle:hover .trim-dot-el {
+  r: 5.5;
+  filter: drop-shadow(0 0 2px var(--accent));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECONDARY PANEL COMPONENTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── SPAT TYPE LIST (Audio tab) ─────────────────────────────────────────────── */
+.spat-list { display: flex; flex-direction: column; gap: 3px; }
+.spat-item {
+  padding: 6px 10px;
+  font-size: var(--sz-base);
+  border-radius: var(--r);
+  cursor: pointer;
+  color: var(--text-2);
+  transition: background 0.1s, color 0.1s;
+  border: 1px solid transparent;
+}
+.spat-item:hover  { background: var(--bg); }
+.spat-item.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: var(--accent-mid);
+  font-weight: 600;
+}
+
+/* ── SPEAKER LIST (Rig tab) ─────────────────────────────────────────────────── */
+.speaker-list { display: flex; flex-direction: column; }
+.speaker-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 2px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--sz-base);
+}
+.speaker-item:last-child { border-bottom: none; }
+.speaker-item input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 12px; height: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.speaker-num {
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+  min-width: 18px;
+}
+.speaker-name { color: var(--text-2); flex: 1; }
+.speaker-pos {
+  font-family: var(--font-mono);
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+}
+
+/* Rig 3D visualization placeholder */
+.rig-viz {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--white);
+  padding: 8px;
+  margin-top: 8px;
+  max-width: 220px;
+}
+
+/* ── OUTPUT MATRIX (Generali tab) ───────────────────────────────────────────── */
+.matrix-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+.matrix-header,
+.matrix-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.matrix-lbl {
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+  min-width: 18px;
+  text-align: center;
+}
+.matrix-cell {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--white);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.matrix-cell:hover  { background: var(--accent-light); border-color: var(--accent-mid); }
+.matrix-cell.active { background: var(--accent); border-color: var(--accent); }
+
+/* Settings placeholder text (dummy params) */
+.settings-section-title {
+  font-size: var(--sz-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  padding-bottom: 5px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Arc button bar + Pattern presets bar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Arc button bar (lives inside panel-header) ─────────────────────────── */
+.arc-btn-bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  overflow: hidden;
+}
+
+.arc-btn {
+  width: 22px;
+  height: 20px;
+  border: 1.5px solid var(--arc-color, var(--border));
+  border-radius: var(--r-sm, 3px);
+  background: transparent;
+  color: var(--arc-color, var(--text-3));
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0.38;
+  transition: opacity 0.1s, box-shadow 0.1s;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arc-btn.active {
+  background: var(--arc-color, var(--accent));
+  color: #fff;
+  opacity: 1;
+}
+
+.arc-btn:not(.active):hover { opacity: 0.8; }
+.arc-btn.active:hover       { opacity: 0.85; }
+
+/* Ring indicator for the currently selected arc */
+.arc-btn.selected {
+  box-shadow: 0 0 0 2px var(--text);
+  opacity: 1;
+}
+
+/* ── Pattern morph slider (16 slots) ─────────────────────────────────────── */
+.pattern-bar-wrap {
+  flex: 0 0 30px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.pattern-bar {
+  position: relative;
+  flex: 1;
+  display: flex;
+  height: 22px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+/* Individual slot marker */
+.pslot {
+  flex: 1;
+  text-align: center;
+  font-size: 8px;
+  font-family: var(--font-mono);
+  color: var(--text-3);
+  line-height: 22px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  transition: background 0.07s, color 0.07s;
+  position: relative;
+  z-index: 0;
+}
+.pslot:first-child { border-left: 1px solid var(--border); }
+
+/* Slot has saved arc data */
+.pslot.filled { color: var(--text-2); background: var(--bg); }
+
+/* The slot at the current (rounded) pattern position */
+.pslot.active {
+  color: var(--accent);
+  background: var(--accent-fill);
+  font-weight: 600;
+}
+
+/* One of the two slots being morphed between */
+.pslot.morphing {
+  color: var(--accent);
+  background: rgba(45, 74, 122, 0.05);
+  opacity: 0.7;
+}
+
+/* Draggable position indicator — thin vertical line */
+.pthumb {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--accent);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 3;
+  border-radius: 1px;
+  box-shadow: 0 0 4px rgba(45, 74, 122, 0.4);
+}

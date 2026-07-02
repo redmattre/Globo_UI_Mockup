@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLOBO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="plugin-window" id="plugin-window">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         MAIN PANEL
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="panel" id="main-panel">
+
+      <header class="panel-header">
+        <!-- Arc colour buttons (left) — populated by arcs.js -->
+        <div class="arc-btn-bar" id="arc-btn-bar"></div>
+        <!-- Right side: ψ settings trigger + instance badge -->
+        <div class="header-right">
+          <button class="logo-btn" id="logo-btn" title="Impostazioni">t</button>
+          <span class="instance-badge mono" id="instance-badge">#1</span>
+        </div>
+      </header>
+
+      <div class="panel-body">
+
+        <!-- ─── LEFT: Circle navigation ─── -->
+        <section class="circle-section">
+
+          <div class="circle-area">
+            <svg id="nav-circle" viewBox="0 0 200 200"
+                 xmlns="http://www.w3.org/2000/svg"
+                 aria-label="Navigazione azimutale"></svg>
+
+            <div class="height-control">
+              <div class="height-mode" id="height-mode">
+                <button class="mode-btn active" data-mode="hemisphere" title="Semisfera">½</button>
+                <button class="mode-btn"        data-mode="sphere"     title="Sfera">●</button>
+              </div>
+              <div class="height-track">
+                <span class="height-lbl top mono">90°</span>
+                <input type="range" id="height-slider"
+                       class="vertical-slider"
+                       min="0" max="90" value="0" step="1">
+                <span class="height-lbl bot mono">0°</span>
+              </div>
+              <span class="height-val mono" id="height-val">0°</span>
+            </div>
+          </div>
+
+          <!-- Pattern presets bar (16 slots, morph slider) -->
+          <div class="pattern-bar-wrap">
+            <div class="pattern-bar" id="pattern-bar"></div>
+          </div>
+
+          <!-- Readhead: always visible, below the circle -->
+          <div class="readhead-bar" id="readhead-bar">
+            <span class="rh-angle mono" id="rh-start">0.</span>
+
+            <div class="rh-track-wrap">
+              <div class="rh-track" id="rh-track">
+                <div class="rh-dots" id="rh-dots"></div>
+                <div class="rh-marker" id="rh-marker" title="Testina di lettura"></div>
+              </div>
+            </div>
+
+            <span class="rh-angle mono" id="rh-end">1.</span>
+
+            <div class="rh-controls">
+              <select id="rh-ease" class="rh-ease-sel">
+                <option value="in" selected>ease  in</option>
+                <option value="out">ease  out</option>
+                <option value="double">↔  double</option>
+              </select>
+              <input type="range" id="rh-force" class="rh-force-slider"
+                     min="0" max="100" value="0">
+              <span class="mono rh-force-val" id="rh-force-val">0%</span>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ─── Resize handle ─── -->
+        <div class="panel-resize-handle" id="panel-resize"></div>
+
+        <!-- ─── RIGHT: Module parameters ─── -->
+        <section class="params-section">
+          <!-- Algorithm selector tabs (moved here from header) -->
+          <nav class="tab-bar params-tab-bar" id="module-tabs" role="tablist">
+            <button class="tab active" data-module="perimetro" role="tab">Perimetro</button>
+            <button class="tab"        data-module="segmento"  role="tab">Segmento</button>
+            <button class="tab"        data-module="traversa"  role="tab">Traversa</button>
+            <button class="tab"        data-module="aleatorio" role="tab">Aleatorio</button>
+            <button class="tab future" disabled>Attrazione</button>
+            <button class="tab future" disabled>Pioggia</button>
+            <button class="tab future" disabled>Pattern</button>
+          </nav>
+          <div class="module-params" id="module-params" role="tabpanel">
+            <!-- populated by modules.js -->
+          </div>
+
+          <footer class="params-footer">
+            <div class="spat-row">
+              <span class="spat-lbl">Spat</span>
+              <select id="spat-type" class="spat-sel mono">
+                <option value="dbap">DBAP</option>
+                <option value="vbap">VBAP</option>
+                <option value="ambisonics">Ambisonics</option>
+                <option value="soundscape">Soundscape</option>
+              </select>
+            </div>
+          </footer>
+
+          <!-- Slave indicator: diagonal lines in bottom-right corner -->
+          <canvas class="slave-canvas" id="slave-canvas" aria-hidden="true"></canvas>
+        </section>
+
+      </div><!-- /panel-body -->
+    </div><!-- /main-panel -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+         SECONDARY PANEL  (overlay, activated by logo click / ESC)
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="panel overlay" id="secondary-panel" hidden>
+
+      <header class="panel-header">
+        <!-- Global / stray toggle (left) -->
+        <div class="gs-toggle" id="gs-toggle">
+          <button class="gs-btn active" data-gs="global">global</button>
+          <button class="gs-btn"        data-gs="stray">stray</button>
+        </div>
+        <!-- Right side: ψ close button + instance badge -->
+        <div class="header-right">
+          <button class="logo-btn active-logo" id="logo-btn-2" title="Chiudi (ESC)">ψ</button>
+          <span class="instance-badge mono">#1</span>
+        </div>
+      </header>
+
+      <!-- Settings tabs — same style as algorithm tabs in main panel -->
+      <nav class="tab-bar params-tab-bar" id="settings-tabs" role="tablist">
+        <button class="tab active" data-settings="audio"    role="tab">Audio</button>
+        <button class="tab"        data-settings="rig"      role="tab">Rig</button>
+        <button class="tab"        data-settings="generali" role="tab">Generali</button>
+      </nav>
+
+      <div class="panel-body">
+        <div class="settings-body" id="settings-body">
+          <!-- populated by app.js -->
+        </div>
+      </div>
+
+    </div><!-- /secondary-panel -->
+
+  </div><!-- /plugin-window -->
+
+  <script src="js/circle.js"></script>
+  <script src="js/modules.js"></script>
+  <script src="js/arcs.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
