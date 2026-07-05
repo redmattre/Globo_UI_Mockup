@@ -17,7 +17,12 @@
     readheadPos:     0.,  // 0 to 1
     easeType:        'in',   // 'in' | 'out' | 'double'
     easeIntensity:   0,      // 0–100
+    playing:         false,
   };
+
+  const PLAY_CYCLE_MS = 4000; // full sweep 0 -> 1 -> 0
+  let playRAF   = null;
+  let playStart = null;
 
   /* ═══════════════════════════════════════════════════════════════════════
      PANEL NAVIGATION
@@ -171,9 +176,9 @@
     const CX = 100, CY = 100, R = 75;
     let s = '';
     // Abstract sphere ellipses
-    s += `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#CBC8C3" stroke-width="1"/>`;
-    s += `<ellipse cx="${CX}" cy="${CY}" rx="${R}" ry="${R*0.3}" fill="none" stroke="#D4D1CC" stroke-width="0.5" stroke-dasharray="3 2"/>`;
-    s += `<ellipse cx="${CX}" cy="${CY}" rx="${R*0.3}" ry="${R}" fill="none" stroke="#D4D1CC" stroke-width="0.5" stroke-dasharray="3 2"/>`;
+    s += `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#1A1917" stroke-width="1"/>`;
+    s += `<ellipse cx="${CX}" cy="${CY}" rx="${R}" ry="${R*0.3}" fill="none" stroke="#D3D1CC" stroke-width="0.5" stroke-dasharray="3 2"/>`;
+    s += `<ellipse cx="${CX}" cy="${CY}" rx="${R*0.3}" ry="${R}" fill="none" stroke="#D3D1CC" stroke-width="0.5" stroke-dasharray="3 2"/>`;
     // Center
     s += `<circle cx="${CX}" cy="${CY}" r="2.5" fill="#C8C5C0"/>`;
 
@@ -185,11 +190,11 @@
       const x   = CX + R * Math.sin(rad);
       const y   = CY - R * Math.cos(rad);
       s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"
-                    fill="#fff" stroke="#2D4A7A" stroke-width="1.5"/>`;
+                    fill="#fff" stroke="#2B4C9B" stroke-width="1.5"/>`;
       const lx = CX + (R + 12) * Math.sin(rad);
       const ly = CY - (R + 12) * Math.cos(rad);
       s += `<text x="${lx.toFixed(1)}" y="${(ly + 3).toFixed(1)}"
-                  font-size="7" fill="#5A5450"
+                  font-size="7" fill="#56534E"
                   text-anchor="middle" font-family="Arial">${sp.name}</text>`;
     });
 
@@ -202,13 +207,13 @@
       const x   = CX + re * Math.sin(rad);
       const y   = CY - re * Math.cos(rad);
       s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5"
-                    fill="#E8EEF8" stroke="#2D4A7A" stroke-width="1.2" stroke-dasharray="2.5 1.5"/>`;
+                    fill="#E7ECF7" stroke="#2B4C9B" stroke-width="1.2" stroke-dasharray="2.5 1.5"/>`;
     });
 
     // Top speaker
     s += `<circle cx="${CX}" cy="${CY}" r="5"
-                  fill="#E8EEF8" stroke="#2D4A7A" stroke-width="1.2"/>`;
-    s += `<text x="${CX}" y="${CY + 3}" font-size="6" fill="#2D4A7A"
+                  fill="#E7ECF7" stroke="#2B4C9B" stroke-width="1.2"/>`;
+    s += `<text x="${CX}" y="${CY + 3}" font-size="6" fill="#2B4C9B"
                 text-anchor="middle" font-family="Arial">T</text>`;
 
     return s;
@@ -419,6 +424,36 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
+     TRANSPORT TOGGLE  (mockup play/pause — sweeps the readhead back and forth)
+  ════════════════════════════════════════════════════════════════════════ */
+  function playTick(ts) {
+    if (!state.playing) return;
+    if (playStart === null) playStart = ts;
+    const t = ((ts - playStart) % PLAY_CYCLE_MS) / PLAY_CYCLE_MS; // 0..1
+    const pos = t < 0.5 ? t * 2 : 2 - t * 2; // triangle wave 0 -> 1 -> 0
+    state.readheadPos = pos;
+    setReadheadPos(pos);
+    applyReadheadToCircle(pos);
+    playRAF = requestAnimationFrame(playTick);
+  }
+
+  function setPlaying(playing) {
+    state.playing = playing;
+    const btn = document.getElementById('transport-toggle');
+    if (btn) {
+      btn.dataset.state = playing ? 'playing' : 'paused';
+      btn.title = playing ? 'Pause' : 'Play';
+    }
+    if (playing) {
+      playStart = null;
+      playRAF = requestAnimationFrame(playTick);
+    } else if (playRAF !== null) {
+      cancelAnimationFrame(playRAF);
+      playRAF = null;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
      HEIGHT SLIDER
   ════════════════════════════════════════════════════════════════════════ */
   function initHeightSlider() {
@@ -436,11 +471,14 @@
       if (window.ArcsAPI) window.ArcsAPI.autosave();
     });
 
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const mode = btn.dataset.mode;
+    const modeToggle = document.getElementById('height-mode-toggle');
+    if (modeToggle) {
+      modeToggle.addEventListener('click', () => {
+        const mode = modeToggle.dataset.mode === 'sphere' ? 'hemisphere' : 'sphere';
+        modeToggle.dataset.mode = mode;
+        modeToggle.title = mode === 'sphere'
+          ? 'Sfera (clic: semisfera)'
+          : 'Semisfera (clic: sfera)';
         // Save mode to the currently selected arc
         if (window.CircleState && window.CircleState.arcs) {
           window.CircleState.arcs[window.CircleState.selected].heightMode = mode;
@@ -458,7 +496,7 @@
           window.ArcsAPI.syncHeightSlider(window.CircleState.selected);
         }
       });
-    });
+    }
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -480,7 +518,7 @@
     ctx.clearRect(0, 0, size, size);
     if (count === 0) return;
 
-    ctx.strokeStyle = '#ACABAA';
+    ctx.strokeStyle = '#ACAAA4';
     ctx.lineWidth = 1;
 
     // Draw N lines in the bottom-right triangle (clipped by CSS to corner)
@@ -536,6 +574,10 @@
     // Spat selector mirrors selection back if changed directly
     document.getElementById('spat-type')
       ?.addEventListener('change', () => { /* extend if needed */ });
+
+    // Transport toggle (mockup play/pause)
+    document.getElementById('transport-toggle')
+      ?.addEventListener('click', () => setPlaying(!state.playing));
   }
 
   /* ═══════════════════════════════════════════════════════════════════════

@@ -12,13 +12,14 @@
   align-items: center;
   justify-content: center;
   font-size: 17px;
-  color: var(--accent);
+  color: var(--ink);
   border-radius: var(--r);
   transition: background 0.12s, color 0.12s;
 }
-.logo-btn:hover    { background: var(--accent-fill); }
+.logo-ico { width: 16px; height: 16px; display: block; }
+.logo-btn:hover    { background: var(--ink-fill); }
 .logo-btn.active-logo,
-.logo-btn.active   { background: var(--accent-fill); }
+.logo-btn.active   { background: var(--ink-fill); }
 
 /* ── INSTANCE BADGE (read-only, placed right in header) ───────────────────── */
 .instance-badge {
@@ -63,9 +64,9 @@
   transition: background 0.1s, color 0.1s;
   flex-shrink: 0;
 }
-.tab:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+.tab:hover:not(:disabled) { background: var(--ink-fill); color: var(--text); }
 .tab.active {
-  background: var(--accent);
+  background: var(--ink);
   color: #fff;
 }
 .tab.future {
@@ -92,35 +93,35 @@
   transition: background 0.1s, color 0.1s;
 }
 .gs-btn + .gs-btn { border-left: 1px solid var(--border-strong); }
+.gs-btn:hover:not(.active) { background: var(--ink-fill); color: var(--text); }
 .gs-btn.active {
-  background: var(--accent);
+  background: var(--ink);
   color: #fff;
 }
 
-/* ── HEIGHT CONTROLS ────────────────────────────────────────────────────────── */
-.height-mode {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.mode-btn {
-  width: 20px;
-  height: 20px;
-  font-size: 10px;
-  color: var(--text-3);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
+/* ── HEIGHT MODE TOGGLE (semisfera / sfera) ─────────────────────────────────── */
+.mode-toggle {
+  width: 2rem;
+  height: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.1s;
+  /* margin-bottom: 1rem; */
+  color: var(--ink);
+  background: var(--white);
+  /* border: 1px solid var(--border-strong); */
+  border: none;
+  border-radius: var(--r);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
-.mode-btn.active {
-  background: var(--accent);
+/* .mode-toggle:hover {
+  background: var(--ink);
   color: #fff;
-  border-color: var(--accent);
-}
-.mode-btn:hover:not(.active) { background: var(--bg); }
+  border-color: var(--ink);
+} */
+.mode-toggle .ico { display: none; width: 18px; height: 18px; }
+.mode-toggle[data-mode="hemisphere"] .ico-hemi   { display: block; }
+.mode-toggle[data-mode="sphere"]     .ico-sphere { display: block; }
 
 .height-lbl {
   font-family: var(--font-mono);
@@ -138,13 +139,56 @@
 
 /* ── VERTICAL SLIDER (height) ───────────────────────────────────────────────── */
 .vertical-slider {
+  -webkit-appearance: none;
+  appearance: none;
   writing-mode: vertical-lr;
   direction: rtl;
   flex: 1;
-  width: 18px;
+  width: 16px;
   min-height: 60px;
-  accent-color: var(--accent);
+  background: transparent;
+  cursor: pointer;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CUSTOM RANGE SLIDERS  —  architectural fader (thin track + black tick thumb)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.param-slider::-webkit-slider-runnable-track,
+.rh-force-slider::-webkit-slider-runnable-track { height: 2px; background: var(--border-strong); border-radius: 0; }
+.param-slider::-moz-range-track,
+.rh-force-slider::-moz-range-track { height: 2px; background: var(--border-strong); border-radius: 0; }
+
+.param-slider::-webkit-slider-thumb,
+.rh-force-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 4px; height: 15px; margin-top: -6.5px;
+  background: var(--ink); border: none; border-radius: 0;
+  transition: background 0.1s;
+}
+.param-slider::-moz-range-thumb,
+.rh-force-slider::-moz-range-thumb {
+  width: 4px; height: 15px; background: var(--ink); border: none; border-radius: 0;
+}
+.param-slider:hover::-webkit-slider-thumb,
+.rh-force-slider:hover::-webkit-slider-thumb { background: #000; }
+.param-slider:hover::-moz-range-thumb,
+.rh-force-slider:hover::-moz-range-thumb { background: #000; }
+.param-slider:focus, .rh-force-slider:focus { outline: none; }
+
+/* Vertical (height) track + thumb */
+.vertical-slider::-webkit-slider-runnable-track { width: 2px; background: var(--border-strong); border-radius: 0; }
+.vertical-slider::-moz-range-track { width: 2px; background: var(--border-strong); border-radius: 0; }
+.vertical-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 15px; height: 4px; margin-left: -6.5px;
+  background: var(--thumb-color, var(--ink)); border: none; border-radius: 0;
+  transition: background 0.1s;
+}
+.vertical-slider::-moz-range-thumb {
+  width: 15px; height: 4px; background: var(--thumb-color, var(--ink)); border: none; border-radius: 0;
+}
+.vertical-slider:hover::-webkit-slider-thumb { background: var(--thumb-color, #000); }
+.vertical-slider:focus { outline: none; }
 
 /* ── READHEAD BAR ───────────────────────────────────────────────────────────── */
 .rh-angle {
@@ -195,13 +239,13 @@
   height: 0;
   border-left:  6px solid transparent;
   border-right: 6px solid transparent;
-  border-top:   9px solid var(--accent);
+  border-top:   9px solid var(--ink);
   cursor: grab;
   pointer-events: all;
   transition: border-top-color 0.1s;
 }
 .rh-marker:active { cursor: grabbing; }
-.rh-marker:hover  { border-top-color: var(--accent-hover); }
+.rh-marker:hover  { border-top-color: #000; }
 
 .rh-controls {
   display: flex;
@@ -231,8 +275,11 @@
 .rh-ease-sel:focus { outline: 1px solid var(--accent); }
 
 .rh-force-slider {
-  width: 52px;
-  accent-color: var(--accent);
+  -webkit-appearance: none;
+  appearance: none;
+  width: 56px;
+  height: 16px;
+  background: transparent;
   cursor: pointer;
 }
 
@@ -286,27 +333,25 @@
 .che-input::-webkit-inner-spin-button,
 .che-input::-webkit-outer-spin-button { opacity: 0.4; }
 .che-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-fill); }
-/* ── SPAT SELECTOR (params footer) ─────────────────────────────────────────── */
-.spat-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.spat-lbl {
-  font-size: var(--sz-xs);
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
+/* ── SPAT SELECTOR (header, left of settings button) ───────────────────────── */
 .spat-sel {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  text-align: center;
+  height: 28px;
+  padding: 0 8px;
   font-size: var(--sz-base);
   font-weight: 500;
-  color: var(--accent);
+  color: var(--ink);
   background: transparent;
   border: none;
+  border-radius: var(--r);
   cursor: pointer;
+  transition: background 0.12s;
 }
-.spat-sel:focus { outline: 1px solid var(--accent); border-radius: var(--r-sm); }
+.spat-sel:hover  { background: var(--ink-fill); }
+.spat-sel:focus  { outline: 1px solid var(--ink); border-radius: var(--r-sm); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MODULE PARAMETER PANELS
@@ -342,8 +387,11 @@
 }
 
 .param-slider {
+  -webkit-appearance: none;
+  appearance: none;
   flex: 1;
-  accent-color: var(--accent);
+  height: 16px;
+  background: transparent;
   cursor: pointer;
   min-width: 0;
 }
@@ -377,10 +425,10 @@
 }
 .seg-btn:last-child { border-right: none; }
 .seg-btn.active {
-  background: var(--accent);
+  background: var(--ink);
   color: #fff;
 }
-.seg-btn:hover:not(.active) { background: var(--bg); }
+.seg-btn:hover:not(.active) { background: var(--ink-fill); }
 
 /* ── SVG HANDLES (circle) ──────────────────────────────────────────────────── */
 .svg-handle { cursor: grab; }
@@ -408,11 +456,11 @@
   transition: background 0.1s, color 0.1s;
   border: 1px solid transparent;
 }
-.spat-item:hover  { background: var(--bg); }
+.spat-item:hover  { background: var(--ink-fill); }
 .spat-item.active {
-  background: var(--accent-light);
-  color: var(--accent);
-  border-color: var(--accent-mid);
+  background: var(--ink-fill);
+  color: var(--ink);
+  border-color: var(--border-strong);
   font-weight: 600;
 }
 
@@ -483,8 +531,8 @@
   cursor: pointer;
   transition: background 0.1s;
 }
-.matrix-cell:hover  { background: var(--accent-light); border-color: var(--accent-mid); }
-.matrix-cell.active { background: var(--accent); border-color: var(--accent); }
+.matrix-cell:hover  { background: var(--ink-fill); border-color: var(--border-strong); }
+.matrix-cell.active { background: var(--ink); border-color: var(--ink); }
 
 /* Settings placeholder text (dummy params) */
 .settings-section-title {
@@ -508,7 +556,7 @@
   align-items: center;
   gap: 4px;
   padding: 0 4px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .arc-btn {
@@ -546,14 +594,21 @@
   opacity: 1;
 }
 
+/* Locked = non ancora creata; si crea solo con il "+" sul cerchio */
+.arc-btn.locked {
+  opacity: 0.28;
+  pointer-events: none;
+}
+
 /* ── Pattern morph slider (16 slots) ─────────────────────────────────────── */
 .pattern-bar-wrap {
-  flex: 0 0 30px;
+  flex: 0 0 32px;
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 var(--pad-x);
   border-top: 1px solid var(--border);
   background: var(--surface);
+  max-height: fit-content;
 }
 
 .pattern-bar {
@@ -588,15 +643,15 @@
 
 /* The slot at the current (rounded) pattern position */
 .pslot.active {
-  color: var(--accent);
-  background: var(--accent-fill);
+  color: transparent;
+  background: rgba(26, 25, 23, 0.5);
   font-weight: 600;
 }
 
 /* One of the two slots being morphed between */
 .pslot.morphing {
-  color: var(--accent);
-  background: rgba(45, 74, 122, 0.05);
+  color: var(--ink);
+  background: rgba(26, 25, 23, 0.045);
   opacity: 0.7;
 }
 
@@ -606,10 +661,39 @@
   top: 0;
   width: 2px;
   height: 100%;
-  background: var(--accent);
+  background: var(--ink);
   transform: translateX(-50%);
   pointer-events: none;
   z-index: 3;
-  border-radius: 1px;
-  box-shadow: 0 0 4px rgba(45, 74, 122, 0.4);
+  border-radius: 0;
 }
+.pthumb::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  background: var(--ink);
+  transform: translate(-50%, 0) rotate(45deg);
+}
+
+/* ── TRANSPORT TOGGLE (mockup play/pause, params footer) ────────────────────── */
+.transport-toggle {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: var(--r);
+  transition: background 0.12s, color 0.12s, transform 0.08s;
+}
+.transport-toggle:hover   { /*background: var(--accent);*/ border-color: var(--accent); }
+.transport-toggle:active  { transform: scale(0.94); }
+.transport-toggle .ico { display: none; width: 15px; height: 15px; }
+.transport-toggle[data-state="paused"]  .ico-play  { display: block; }
+.transport-toggle[data-state="playing"] .ico-pause { display: block; }

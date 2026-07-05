@@ -20,9 +20,15 @@
       <header class="panel-header">
         <!-- Arc colour buttons (left) — populated by arcs.js -->
         <div class="arc-btn-bar" id="arc-btn-bar"></div>
-        <!-- Right side: ψ settings trigger + instance badge -->
+        <!-- Right side: spat selector + ψ settings trigger + instance badge -->
         <div class="header-right">
-          <button class="logo-btn" id="logo-btn" title="Impostazioni">t</button>
+          <select id="spat-type" class="spat-sel mono">
+            <option value="dbap">DBAP</option>
+            <option value="vbap">VBAP</option>
+            <option value="ambisonics">Ambi</option>
+            <option value="soundscape">ADM</option>
+          </select>
+          <button class="logo-btn" id="logo-btn" title="Impostazioni"><svg class="logo-ico" viewBox="0 0 18 18" aria-hidden="true" style="fill: #505050"><line x1="2.5" y1="5" x2="15.5" y2="5" stroke="currentColor" stroke-width="1.4"/><line x1="2.5" y1="9" x2="15.5" y2="9" stroke="currentColor" stroke-width="1.4"/><line x1="2.5" y1="13" x2="15.5" y2="13" stroke="currentColor" stroke-width="1.4"/><circle cx="11" cy="5" r="2" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/><circle cx="6" cy="9" r="2" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="13" r="2" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/></svg></button>
           <span class="instance-badge mono" id="instance-badge">#1</span>
         </div>
       </header>
@@ -38,10 +44,16 @@
                  aria-label="Navigazione azimutale"></svg>
 
             <div class="height-control">
-              <div class="height-mode" id="height-mode">
-                <button class="mode-btn active" data-mode="hemisphere" title="Semisfera">½</button>
-                <button class="mode-btn"        data-mode="sphere"     title="Sfera">●</button>
-              </div>
+              <button class="mode-toggle" id="height-mode-toggle" data-mode="hemisphere" title="Semisfera (clic: sfera)" aria-label="Modalità altezza">
+                <svg class="ico ico-hemi" viewBox="0 0 18 18" aria-hidden="true">
+                  <path d="M2 13 A7 7 0 0 1 16 13" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                  <line x1="1" y1="13" x2="17" y2="13" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                <svg class="ico ico-sphere" viewBox="0 0 18 18" aria-hidden="true">
+                  <circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                  <ellipse cx="9" cy="9" rx="7" ry="2.6" fill="none" stroke="currentColor" stroke-width="1.2"/>
+                </svg>
+              </button>
               <div class="height-track">
                 <span class="height-lbl top mono">90°</span>
                 <input type="range" id="height-slider"
@@ -86,7 +98,7 @@
         </section>
 
         <!-- ─── Resize handle ─── -->
-        <div class="panel-resize-handle" id="panel-resize"></div>
+        <div class="panel-resize-handle" id="panel-resize" style="width: 3px"></div>
 
         <!-- ─── RIGHT: Module parameters ─── -->
         <section class="params-section">
@@ -105,15 +117,16 @@
           </div>
 
           <footer class="params-footer">
-            <div class="spat-row">
-              <span class="spat-lbl">Spat</span>
-              <select id="spat-type" class="spat-sel mono">
-                <option value="dbap">DBAP</option>
-                <option value="vbap">VBAP</option>
-                <option value="ambisonics">Ambisonics</option>
-                <option value="soundscape">Soundscape</option>
-              </select>
-            </div>
+            <!-- Transport toggle: mockup play/pause for the readhead -->
+            <button class="transport-toggle" id="transport-toggle" data-state="paused" title="Play">
+              <svg class="ico ico-play" viewBox="0 0 18 18" aria-hidden="true">
+                <path d="M5 3.5 L14 9 L5 14.5 Z" fill="currentColor"/>
+              </svg>
+              <svg class="ico ico-pause" viewBox="0 0 18 18" aria-hidden="true">
+                <rect x="4.5" y="3.5" width="3" height="11" fill="currentColor"/>
+                <rect x="10.5" y="3.5" width="3" height="11" fill="currentColor"/>
+              </svg>
+            </button>
           </footer>
 
           <!-- Slave indicator: diagonal lines in bottom-right corner -->
@@ -137,7 +150,7 @@
         </div>
         <!-- Right side: ψ close button + instance badge -->
         <div class="header-right">
-          <button class="logo-btn active-logo" id="logo-btn-2" title="Chiudi (ESC)">ψ</button>
+          <button class="logo-btn active-logo" id="logo-btn-2" title="Chiudi (ESC)"><svg class="logo-ico" viewBox="0 0 18 18" aria-hidden="true"><line x1="2.5" y1="5" x2="15.5" y2="5" stroke="currentColor" stroke-width="1.4"/><line x1="2.5" y1="9" x2="15.5" y2="9" stroke="currentColor" stroke-width="1.4"/><line x1="2.5" y1="13" x2="15.5" y2="13" stroke="currentColor" stroke-width="1.4"/><circle cx="11" cy="5" r="2" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/><circle cx="6" cy="9" r="2" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="13" r="2" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/></svg></button>
           <span class="instance-badge mono">#1</span>
         </div>
       </header>

@@ -9,27 +9,27 @@
 
   /* ── Arc colours ────────────────────────────────────────────────────────── */
   window.ARC_COLORS = [
-    '#2D4A7A',  // 1  navy  (existing accent)
-    '#2A7A56',  // 2  forest green
-    '#9B4A00',  // 3  burnt orange
-    '#6B2D87',  // 4  purple
-    '#1A7A7A',  // 5  teal
-    '#7A7000',  // 6  olive / gold
-    '#8A2040',  // 7  crimson
-    '#4A6A80',  // 8  steel blue
+    '#4F6AB8',  // 1  blue     (pastello sobrio)
+    '#5FA07C',  // 2  green
+    '#CE9A54',  // 3  ochre / amber
+    '#9A72B4',  // 4  violet
+    '#4FA0A6',  // 5  teal
+    '#C0A94F',  // 6  mustard
+    '#C8737F',  // 7  rose / red
+    '#7E93AA',  // 8  slate blue
   ];
 
   /* ── State ──────────────────────────────────────────────────────────────── */
   window.CircleState = {
     arcs: [
-      { active: true,  left: 330, right:  60, height: 0, heightMode: 'hemisphere' },
-      { active: false, left:  60, right: 105, height: 0, heightMode: 'hemisphere' },
-      { active: false, left: 105, right: 150, height: 0, heightMode: 'hemisphere' },
-      { active: false, left: 150, right: 195, height: 0, heightMode: 'hemisphere' },
-      { active: false, left: 195, right: 240, height: 0, heightMode: 'hemisphere' },
-      { active: false, left: 240, right: 285, height: 0, heightMode: 'hemisphere' },
-      { active: false, left: 285, right: 315, height: 0, heightMode: 'hemisphere' },
-      { active: false, left: 315, right: 330, height: 0, heightMode: 'hemisphere' },
+      { active: true,  created: true,  left: 330, right:  60, height: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left:  60, right: 105, height: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 105, right: 150, height: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 150, right: 195, height: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 195, right: 240, height: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 240, right: 285, height: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 285, right: 315, height: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 315, right: 330, height: 0, heightMode: 'hemisphere' },
     ],
     selected:  0,    // last interacted arc (height slider / patterns)
     hovered:  -1,    // arc index the mouse is over right now (-1 = none)
@@ -83,6 +83,35 @@
       if (arcsOverlap(newLeft, newRight, arcs[i].left, arcs[i].right)) return true;
     }
     return false;
+  }
+
+  /* ── Zone creation (click on an empty slot) ─────────────────────────────── */
+  function firstUncreatedArcIndex() {
+    var arcs = window.CircleState.arcs;
+    for (var i = 0; i < arcs.length; i++) {
+      if (!arcs[i].created) return i;
+    }
+    return -1;
+  }
+
+  var NEW_ARC_HALF_SPAN = 22.5;  // 45° di default
+  var MIN_HALF_SPAN     = 1;     // ~2° minimo, stessa tolleranza usata altrove nel file
+
+  /** Largest symmetric half-span around `center` (<= maxHalf, >= minHalf) that
+   *  doesn't overlap any other active arc, or null if even minHalf doesn't fit. */
+  function fitHalfSpanAt(center, maxHalf, minHalf, excludeIdx) {
+    function fits(half) {
+      var l = norm(center - half), r = norm(center + half);
+      return !wouldOverlap(excludeIdx, l, r);
+    }
+    if (fits(maxHalf)) return maxHalf;
+    if (!fits(minHalf)) return null;
+    var lo = minHalf, hi = maxHalf;
+    for (var iter = 0; iter < 24; iter++) {
+      var mid = (lo + hi) / 2;
+      if (fits(mid)) lo = mid; else hi = mid;
+    }
+    return lo;
   }
 
   /* ── SVG element factory ────────────────────────────────────────────────── */
@@ -177,11 +206,11 @@
     var hovIdx = cs.hovered;
 
     /* 1 ── Cross guides (pointer-events:none — mouse passes through to arcs) */
-    svg.appendChild(el('line', { x1: CX, y1: CY - R - 10, x2: CX, y2: CY + R + 10, stroke: '#C8C5C0', 'stroke-width': '0.5', 'pointer-events': 'none' }));
-    svg.appendChild(el('line', { x1: CX - R - 10, y1: CY, x2: CX + R + 10, y2: CY, stroke: '#C8C5C0', 'stroke-width': '0.5', 'pointer-events': 'none' }));
+    svg.appendChild(el('line', { x1: CX, y1: CY - R - 10, x2: CX, y2: CY + R + 10, stroke: '#D3D1CC', 'stroke-width': '0.5', 'pointer-events': 'none' }));
+    svg.appendChild(el('line', { x1: CX - R - 10, y1: CY, x2: CX + R + 10, y2: CY, stroke: '#D3D1CC', 'stroke-width': '0.5', 'pointer-events': 'none' }));
 
     /* 2 ── Main circle outline (pointer-events:none) */
-    svg.appendChild(el('circle', { cx: CX, cy: CY, r: R, fill: 'none', stroke: '#CBC8C3', 'stroke-width': '1', 'pointer-events': 'none' }));
+    svg.appendChild(el('circle', { cx: CX, cy: CY, r: R, fill: 'none', stroke: '#1A1917', 'stroke-width': '1', 'pointer-events': 'none' }));
 
     /* 3 ── Ghost arc (Traversa mode — only while an arc is actively hovered) */
     if (cs.module === 'traversa' && hovIdx >= 0) {
@@ -216,6 +245,21 @@
         svg.appendChild(t1);
         svg.appendChild(t2);
       }
+    }
+
+    /* 3b ── Hover ghost badge: small grey "+" as an apex to the cursor, over an
+             available (inactive) slot — click there activates that slot's arc. */
+    if (ghostArcIdx >= 0 && ghostPoint) {
+      var gx = ghostPoint.x + 5, gy = ghostPoint.y - 5;
+      var gs = 2.6;
+      svg.appendChild(el('line', {
+        x1: (gx - gs).toFixed(2), y1: gy.toFixed(2), x2: (gx + gs).toFixed(2), y2: gy.toFixed(2),
+        stroke: '#8B857A', 'stroke-width': '1.1', 'stroke-linecap': 'round', 'pointer-events': 'none',
+      }));
+      svg.appendChild(el('line', {
+        x1: gx.toFixed(2), y1: (gy - gs).toFixed(2), x2: gx.toFixed(2), y2: (gy + gs).toFixed(2),
+        stroke: '#8B857A', 'stroke-width': '1.1', 'stroke-linecap': 'round', 'pointer-events': 'none',
+      }));
     }
 
     /* 4 ── One group per active arc: hit area + visuals + (if hovered) handles
@@ -304,7 +348,7 @@
     var posPt = pt(cs.positionAngle);
     svg.appendChild(el('circle', {
       cx: posPt.x.toFixed(2), cy: posPt.y.toFixed(2), r: '5',
-      fill: '#1B1A18', stroke: '#fff', 'stroke-width': '1.5',
+      fill: '#0F0E0D', stroke: '#fff', 'stroke-width': '1.5',
       class: 'position-dot', 'pointer-events': 'none',
     }));
   }
@@ -320,10 +364,25 @@
   /* ── Hover detection (mousemove on SVG) ─────────────────────────────────── */
   function onSVGMouseMove(e) {
     if (dragging !== null) return;  // don't change hover during drag
+    var svg = document.getElementById('nav-circle');
+    if (!svg) return;
     var target = document.elementFromPoint(e.clientX, e.clientY);
     var hitEl  = target && target.closest('[data-arc-hover]');
     var newHov = hitEl ? parseInt(hitEl.getAttribute('data-arc-hover'), 10) : -1;
     var cs = window.CircleState;
+
+    // Ghost "+": anywhere inside the circle that isn't an active arc, as long
+    // as a slot is still available to be created (geometry decided on click).
+    var sp        = toSVG(svg, e);
+    var dist      = Math.hypot(sp.x - CX, sp.y - CY);
+    var prevGhost = ghostArcIdx;
+    ghostArcIdx = -1;
+    ghostPoint  = null;
+    if (newHov === -1 && dist <= R) {
+      var idx = firstUncreatedArcIndex();
+      if (idx >= 0) { ghostArcIdx = idx; ghostPoint = { x: sp.x, y: sp.y }; }
+    }
+
     if (newHov !== cs.hovered) {
       cs.hovered = newHov;
       if (newHov >= 0) {
@@ -336,18 +395,61 @@
         if (window.ArcsAPI) window.ArcsAPI.updateArcButtons();
       }
       draw();
+    } else if (ghostArcIdx >= 0 || prevGhost >= 0) {
+      draw();
     }
   }
 
   function onSVGMouseLeave() {
     if (dragging !== null) return;
     var cs = window.CircleState;
+    var needDraw = false;
     if (cs.hovered !== -1) {
       cs.hovered = -1;
       if (window.ArcsAPI) window.ArcsAPI.updateArcButtons();
-      draw();
+      needDraw = true;
     }
+    if (ghostArcIdx !== -1) { ghostArcIdx = -1; ghostPoint = null; needDraw = true; }
+    if (needDraw) draw();
   }
+
+  /* ── Click on empty space: create + activate a new zone under the cursor ── */
+  function onSVGClick() {
+    if (dragging !== null || ghostArcIdx < 0 || !ghostPoint) return;
+    var cs  = window.CircleState;
+    var arc = cs.arcs[ghostArcIdx];
+    if (!arc || arc.created) return;
+
+    var idx    = ghostArcIdx;
+    var center = angleOf(ghostPoint.x, ghostPoint.y);
+    var half   = fitHalfSpanAt(center, NEW_ARC_HALF_SPAN, MIN_HALF_SPAN, idx);
+    if (half === null) return; // nessuno spazio disponibile qui
+
+    arc.left       = norm(center - half);
+    arc.right      = norm(center + half);
+    arc.height     = 0;
+    arc.heightMode = 'hemisphere';
+    arc.active     = true;
+    arc.created    = true;
+
+    cs.selected = idx;
+    cs.hovered  = idx;
+    ghostArcIdx = -1;
+    ghostPoint  = null;
+
+    if (window.ArcsAPI) {
+      window.ArcsAPI.updateArcButtons();
+      window.ArcsAPI.syncHeightSlider(idx);
+      window.ArcsAPI.autosave();
+      var rpos = (window.AppBridge && window.AppBridge.getReadheadPos) ? window.AppBridge.getReadheadPos() : 0.4;
+      window.ArcsAPI.applyReadhead(rpos);
+    }
+    draw();
+  }
+
+  /* ── Ghost hover state (shadow over an available slot) ──────────────────── */
+  var ghostArcIdx = -1;
+  var ghostPoint  = null;
 
   /* ── Drag state ─────────────────────────────────────────────────────────── */
   var dragging   = null;
@@ -558,6 +660,7 @@
 
     svg.addEventListener('mousemove',  onSVGMouseMove);
     svg.addEventListener('mouseleave', onSVGMouseLeave);
+    svg.addEventListener('click',      onSVGClick);
     svg.addEventListener('mousedown',  onDown);
     svg.addEventListener('touchstart', onDown, { passive: false });
     svg.addEventListener('mouseover',  onOver);

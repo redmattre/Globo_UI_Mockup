@@ -5,23 +5,25 @@
 
 /* ── DESIGN TOKENS ─────────────────────────────────────────────────────────── */
 :root {
-  /* Colours */
-  --bg:              #EDECEA;
-  --surface:         #F5F4F2;
+  /* Colours — Bauhaus: bianco/nero netti + accenti primari sobri */
+  --bg:              #EFEEEB;   /* neutral paper */
+  --surface:         #FAFAF8;
   --white:           #FFFFFF;
-  --border:          #CBC8C3;
-  --border-strong:   #ACABAA; /* fixed: removed stray comma */
-  --text:            #1B1A18;
-  --text-2:          #585450;
-  --text-3:          #9A9590;
-  --accent:          #2D4A7A;
-  --accent-hover:    #3A5E98;
-  --accent-fill:     rgba(45, 74, 122, 0.07);
-  --accent-mid:      rgba(45, 74, 122, 0.28);
-  --accent-light:    #E8EEF8;
+  --border:          #DBD9D4;   /* hairline */
+  --border-strong:   #ACAAA4;
+  --ink:             #1A1917;   /* near-black — selection / navigation */
+  --ink-fill:        rgba(26, 25, 23, 0.06);
+  --text:            #1A1917;
+  --text-2:          #56534E;
+  --text-3:          #918D87;
+  --accent:          #2B4C9B;   /* sober Bauhaus blue — value / position */
+  --accent-hover:    #35599E;
+  --accent-fill:     rgba(43, 76, 155, 0.08);
+  --accent-mid:      rgba(43, 76, 155, 0.30);
+  --accent-light:    #E7ECF7;
 
   /* Typography */
-  --font:            Arial, Helvetica, sans-serif;
+  --font:            'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-mono:       'JetBrains Mono', 'Menlo', monospace;
 
   /* Sizes */
@@ -30,16 +32,20 @@
   --sz-base:11px;
   --sz-md:  12px;
 
-  /* Radii */
-  --r-sm:   2px;
-  --r:      3px;
-  --r-md:   4px;
+  /* Radii — geometric / sharp */
+  --r-sm:   1px;
+  --r:      2px;
+  --r-md:   2px;
 
-  /* Layout constants */
-  --hdr-h:    36px;
-  --rh-h:     34px;     /* readhead bar height (matches params footer) */
-  --footer-h: 34px;     /* params footer height */
-  --circle-w: 52%;      /* circle section default width (user-resizable) */
+  /* Spacing grid (8px base) */
+  --pad-x:  10px;      /* shared horizontal padding for every bar */
+  --gap:    8px;
+
+  /* Layout constants — aligned bar heights */
+  --hdr-h:    40px;
+  --rh-h:     36px;     /* readhead bar height (matches params footer) */
+  --footer-h: 36px;     /* params footer height */
+  --circle-w: 62%;      /* circle section default width (user-resizable) */
 }
 
 /* ── RESET ──────────────────────────────────────────────────────────────────── */
@@ -109,7 +115,7 @@ ul { list-style: none; }
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0 8px;
+  padding: 0 var(--pad-x);
   background: var(--white);
   border-bottom: 1px solid var(--border);
 }
@@ -132,7 +138,7 @@ ul { list-style: none; }
   z-index: 2;
 }
 .panel-resize-handle:hover,
-.panel-resize-handle.dragging { background: var(--accent); }
+.panel-resize-handle.dragging { background: var(--ink); }
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN PANEL  –  two-column layout
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -152,8 +158,8 @@ ul { list-style: none; }
   flex: 1;
   display: flex;
   align-items: center;
-  padding: 10px 4px 8px 10px;
-  gap: 6px;
+  /* padding: 12px 6px 10px var(--pad-x); */
+  /* gap: 8px; */
   overflow: hidden;
   min-height: 0;
 }
@@ -163,8 +169,8 @@ ul { list-style: none; }
   min-width: 0;
   min-height: 0;
   aspect-ratio: 1 / 1;
-  max-height: 100%;
-  max-width: 100%;
+  max-height: 110%;
+  max-width: 110%;
   overflow: visible;
   display: block;
 }
@@ -175,9 +181,10 @@ ul { list-style: none; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 6px 8px 6px 0;
-  min-width: 36px;
+  /* gap: 5px; */
+  /* padding: 6px 8px 6px 0; */
+  margin-right: 1rem;
+  min-width: 24px;
 }
 
 .height-track {
@@ -194,8 +201,8 @@ ul { list-style: none; }
   flex: 0 0 var(--rh-h);
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 8px 0 10px;
+  gap: 6px;
+  padding: 0 var(--pad-x);
   border-top: 1px solid var(--border);
   background: var(--white);
 }
@@ -216,15 +223,15 @@ ul { list-style: none; }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
-  padding: 4px 8px;
+  gap: 3px;
+  padding: 5px var(--pad-x);
   border-bottom: 1px solid var(--border);
   background: var(--white);
 }
 
 .module-params {
   flex: 1;
-  padding: 14px 16px 10px;
+  padding: 16px var(--pad-x) 12px;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -233,7 +240,8 @@ ul { list-style: none; }
   flex: 0 0 var(--footer-h);
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  justify-content: flex-end;
+  padding: 0 var(--pad-x);
   border-top: 1px solid var(--border);
   background: var(--white);
 }

@@ -33,15 +33,16 @@
 
     (window.ARC_COLORS || []).forEach((color, i) => {
       const btn = document.createElement('button');
-      btn.className = 'arc-btn' + (i === 0 ? ' active' : '');
+      btn.className = 'arc-btn';
       btn.dataset.arc = i;
       btn.style.setProperty('--arc-color', color);
       btn.textContent = i + 1;
-      btn.title = 'Arco ' + (i + 1) + ' — click: accendi / spegni';
-      // Single click = toggle active state
+      // Single click = toggle active state (only once the zone has been created)
       btn.addEventListener('click', () => toggleArc(i));
       bar.appendChild(btn);
     });
+
+    updateArcButtons();
   }
 
   function updateArcButtons() {
@@ -52,23 +53,21 @@
     document.querySelectorAll('.arc-btn').forEach(function (btn) {
       const i = parseInt(btn.dataset.arc, 10);
       const arc = cs.arcs[i];
-      btn.classList.toggle('active',   arc && arc.active);
+      const created = !!(arc && arc.created);
+      btn.classList.toggle('active',   !!(arc && arc.active));
       btn.classList.toggle('selected', i === displaySel);
+      btn.classList.toggle('locked',   !created);
+      btn.title = 'Arco ' + (i + 1) + ' — ' + (created
+        ? 'click: accendi / spegni'
+        : 'crea questa zona cliccando sul cerchio');
     });
-  }
-
-  function selectArc(idx) {
-    if (!window.CircleState) return;
-    window.CircleState.selected = idx;
-    updateArcButtons();
-    syncHeightSlider(idx);
-    autosave();
-    if (window.CircleAPI) window.CircleAPI.draw();
   }
 
   function toggleArc(idx) {
     if (!window.CircleState) return;
-    window.CircleState.arcs[idx].active = !window.CircleState.arcs[idx].active;
+    var arc = window.CircleState.arcs[idx];
+    if (!arc || !arc.created) return;
+    arc.active = !arc.active;
     updateArcButtons();
     autosave();
     if (window.CircleAPI) window.CircleAPI.draw();
@@ -90,7 +89,7 @@
 
     if (slider) {
       slider.value = arc.height;
-      slider.style.accentColor = color;
+      slider.style.setProperty('--thumb-color', color);
       slider.min = arc.heightMode === 'sphere' ? '-90' : '0';
     }
     if (valEl)  { valEl.textContent = arc.height + '°'; valEl.style.color = color; }
@@ -100,6 +99,13 @@
     document.querySelectorAll('.mode-btn').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.mode === arc.heightMode);
     });
+    var modeToggle = document.getElementById('height-mode-toggle');
+    if (modeToggle) {
+      modeToggle.dataset.mode = arc.heightMode;
+      modeToggle.title = arc.heightMode === 'sphere'
+        ? 'Sfera (clic: semisfera)'
+        : 'Semisfera (clic: sfera)';
+    }
   }
 
   /* ── Pattern slider (16 slots, drag to morph) ──────────────────────────── */
@@ -139,6 +145,7 @@
       var arcB = srcHi[idx];
       return {
         active:     t < 0.5 ? arcA.active     : arcB.active,
+        created:    t < 0.5 ? arcA.created    : arcB.created,
         left:       lerpAngle(arcA.left,  arcB.left,  t),
         right:      lerpAngle(arcA.right, arcB.right, t),
         height:     arcA.height + (arcB.height - arcA.height) * t,
@@ -294,7 +301,6 @@
       initPatterns();
       syncHeightSlider(window.CircleState ? window.CircleState.selected : 0);
     },
-    selectArc:            selectArc,
     toggleArc:            toggleArc,
     updateArcButtons:     updateArcButtons,
     syncHeightSlider:     syncHeightSlider,
