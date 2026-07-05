@@ -42,45 +42,24 @@
   }
 
   /* ── PERIMETRO ─────────────────────────────────────────────────────────── */
+  // Velocità, direzione e loop sono ora unificate nella barra in basso.
   function renderPerimetro() {
-    return `
-      ${sectionTitle('Movimento')}
-      ${sliderRow('p-vel', 'Velocità', 0, 200, 60)}
-      ${segRow('Direzione', 'p-dir',
-        [['forward','Forward'], ['back','Back']],
-        'forward')}
-      ${segRow('Follow Action', 'p-fa',
-        [['loop','Loop'], ['backandforth','Back & Forth']],
-        'loop')}
-    `;
+    return '';
   }
 
   /* ── SEGMENTO ──────────────────────────────────────────────────────────── */
   function renderSegmento() {
     return `
-      ${sectionTitle('Velocità')}
-      ${sliderRow('s-vmax', 'Max', 0, 200, 120)}
-      ${sliderRow('s-vmin', 'Min', 0, 200,  40)}
       ${sectionTitle('Distanza')}
       ${sliderRow('s-dmax', 'Max', 0, 360, 90, '°')}
       ${sliderRow('s-dmin', 'Min', 0, 360, 20, '°')}
-      ${sectionTitle('Comportamento')}
-      ${segRow('Direzione', 's-dir',
-        [['forward','→'], ['back','←'], ['backandforth','↔'], ['random','?']],
-        'forward')}
     `;
   }
 
   /* ── TRAVERSA ──────────────────────────────────────────────────────────── */
   function renderTraversa() {
     return `
-      ${sectionTitle('Velocità')}
-      ${sliderRow('t-vmax', 'Max', 0, 200, 100)}
-      ${sliderRow('t-vmin', 'Min', 0, 200,  30)}
       ${sectionTitle('Comportamento')}
-      ${segRow('Direzione', 't-dir',
-        [['wrap','Wrap'], ['back','Back'], ['random','Rand']],
-        'wrap')}
       ${segRow('Opposizione', 't-opp',
         [['origine','Origine'], ['talete','Talete']],
         'origine')}
@@ -90,9 +69,6 @@
   /* ── ALEATORIO ─────────────────────────────────────────────────────────── */
   function renderAleatorio() {
     return `
-      ${sectionTitle('Velocità')}
-      ${sliderRow('a-vmax', 'Max', 0, 200, 80)}
-      ${sliderRow('a-vmin', 'Min', 0, 200, 20)}
       ${sectionTitle('Distribuzione')}
       ${sliderRow('a-spread', 'Spread', 0, 100, 30, '%')}
       ${segRow('Tipologia', 'a-tipo',
@@ -131,6 +107,7 @@
       const unit = slider.dataset.unit || '';
       slider.addEventListener('input', () => {
         valEl.textContent = slider.value + unit;
+        if (window.ArcsAPI) window.ArcsAPI.autosave();
       });
     });
   }
@@ -151,35 +128,77 @@
           window.CircleState.ghostOpposition = btn.dataset.val;
           window.CircleAPI.draw();
         }
+        if (window.ArcsAPI) window.ArcsAPI.autosave();
       });
+    });
+  }
+
+  /* ── Snapshot / restore the current module's own parameters ─────────────── */
+  function snapshotModuleParams() {
+    const container = document.getElementById('module-params');
+    const snap = {};
+    if (!container) return snap;
+    container.querySelectorAll('input[type="range"]').forEach(el => {
+      snap[el.id] = el.value;
+    });
+    container.querySelectorAll('.seg-control').forEach(group => {
+      const active = group.querySelector('.seg-btn.active');
+      if (active) snap[group.id] = active.dataset.val;
+    });
+    return snap;
+  }
+
+  function applyModuleParams(snap) {
+    const container = document.getElementById('module-params');
+    if (!container || !snap) return;
+    Object.keys(snap).forEach(key => {
+      const el = document.getElementById(key);
+      if (!el) return;
+      if (el.tagName === 'INPUT' && el.type === 'range') {
+        el.value = snap[key];
+        const valEl = document.getElementById(key + '-val');
+        if (valEl) valEl.textContent = snap[key] + (el.dataset.unit || '');
+      } else if (el.classList.contains('seg-control')) {
+        el.querySelectorAll('.seg-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.val === snap[key]);
+        });
+        if (key === 't-opp' && window.CircleState) {
+          window.CircleState.ghostOpposition = snap[key];
+        }
+      }
     });
   }
 
   /* ── Readhead adjustments per module ───────────────────────────────────── */
   function updateReadheadForModule(name) {
-    const easeEl   = document.getElementById('rh-ease');
+    const menu     = document.getElementById('rh-ease-menu');
     const randBtns = document.querySelectorAll('.rh-rand-btn');
 
-    if (!easeEl) return;
+    if (!menu) return;
 
     if (name === 'segmento') {
-      // Add random ease option if missing
-      if (!easeEl.querySelector('[value="random"]')) {
-        const opt = document.createElement('option');
-        opt.value = 'random';
-        opt.textContent = '?  random';
-        easeEl.appendChild(opt);
+      // Add random ease choice if missing
+      if (!menu.querySelector('[data-ease="random"]')) {
+        const opt = document.createElement('button');
+        opt.className = 'rh-ease-choice';
+        opt.dataset.ease = 'random';
+        opt.textContent = '? random';
+        menu.appendChild(opt);
       }
       randBtns.forEach(b => { b.style.display = 'inline-flex'; });
     } else {
-      const randOpt = easeEl.querySelector('[value="random"]');
-      if (randOpt) randOpt.remove();
+      const randOpt = menu.querySelector('[data-ease="random"]');
+      if (randOpt) {
+        const wasActive = randOpt.classList.contains('active');
+        randOpt.remove();
+        if (wasActive && window.AppBridge) window.AppBridge.setEaseChoice('in');
+      }
       randBtns.forEach(b => { b.style.display = 'none'; });
     }
   }
 
   /* ── Public API ────────────────────────────────────────────────────────── */
-  window.ModulesAPI = { renderModule };
+  window.ModulesAPI = { renderModule, snapshotModuleParams, applyModuleParams };
 
   document.addEventListener('DOMContentLoaded', () => {
     window.ModulesAPI.renderModule('perimetro');

@@ -95,6 +95,14 @@
   top: 8px;
   right: 8px;
   z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.subgroup-letters {
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+  letter-spacing: 0.03em;
 }
 .subgroup-btn {
   position: relative;
@@ -210,6 +218,7 @@
 .tab-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 2px;
   flex: 1;
   overflow: hidden;
@@ -223,7 +232,11 @@
 }
 
 .tab {
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  /* padding: 7px 11px; */
   font-size: var(--sz-base);
   color: var(--text-2);
   border-radius: var(--r);
@@ -233,13 +246,19 @@
 }
 .tab:hover:not(:disabled) { background: var(--ink-fill); color: var(--text); }
 .tab.active {
-  background: var(--ink);
-  color: #fff;
+  background: var(--border);
+  /* color: #fff; */
 }
 .tab.future {
   opacity: 0.28;
   pointer-events: none;
   font-style: italic;
+}
+
+.tab-ico {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 /* ── GS TOGGLE (global / stray) ─────────────────────────────────────────────── */
@@ -429,17 +448,49 @@
   gap: 4px;
 }
 
-.rh-ease-sel {
+.rh-ease-select { position: relative; }
+.rh-ease-btn {
   font-family: var(--font-mono);
   font-size: var(--sz-xs);
   color: var(--text-2);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 2px 3px;
+  padding: 2px 6px;
   cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
 }
-.rh-ease-sel:focus { outline: 1px solid var(--accent); }
+.rh-ease-btn:hover { background: var(--ink-fill); }
+.rh-ease-btn.open  { background: var(--ink-fill); border-color: var(--accent); }
+
+.rh-ease-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  min-width: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  box-shadow: 0 2px 8px rgba(26, 25, 23, 0.14);
+  z-index: 20;
+}
+.rh-ease-menu[hidden] { display: none; }
+
+.rh-ease-choice {
+  font-family: var(--font-mono);
+  padding: 5px 8px;
+  font-size: var(--sz-xs);
+  color: var(--text);
+  text-align: left;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+.rh-ease-choice:hover  { background: var(--ink-fill); }
+.rh-ease-choice.active { background: var(--ink-fill); font-weight: 600; }
 
 .rh-force-slider {
   -webkit-appearance: none;
@@ -870,7 +921,77 @@
   transform: translate(-50%, 0) rotate(45deg);
 }
 
-/* ── TRANSPORT TOGGLE (mockup play/pause, params footer) ────────────────────── */
+/* ── UNIFIED SPEED RANGE (params footer, dual-handle min/max) ────────────────── */
+.speed-range {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.speed-val {
+  flex-shrink: 0;
+  min-width: 20px;
+  text-align: center;
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+}
+.speed-track {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  background: var(--border-strong);
+}
+.speed-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--ink);
+}
+.speed-thumb {
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 15px;
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+  cursor: ew-resize;
+  transition: background 0.1s;
+}
+.speed-thumb:hover { background: #000; }
+.speed-thumb.locked {
+  background: var(--border-strong);
+  cursor: not-allowed;
+}
+
+/* ── TRANSPORT GROUP (loop / direction / play, params footer) ────────────────── */
+.transport-group {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.transport-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.transport-btn .ico { width: 15px; height: 15px; }
+.transport-btn:hover { background: var(--ink-fill); }
+.transport-btn.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
 .transport-toggle {
   flex: 0 0 26px;
   width: 26px;

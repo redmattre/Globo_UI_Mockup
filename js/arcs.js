@@ -15,13 +15,68 @@
     return JSON.parse(JSON.stringify(window.CircleState.arcs));
   }
 
+  /* ── Subgroup selection (read/write the header's group checklist) ───────── */
+  function getSelectedSubgroups() {
+    return Array.from(document.querySelectorAll('#subgroup-menu .subgroup-item.active'))
+      .map(function (item) { return item.dataset.subgroup; });
+  }
+
+  /** Small light-grey letter badge next to the subgroup button (e.g. "A, C"). */
+  function updateSubgroupLetters() {
+    const badge = document.getElementById('subgroup-letters');
+    if (!badge) return;
+    badge.textContent = getSelectedSubgroups()
+      .map(function (s) { return s.toUpperCase(); })
+      .join(', ');
+  }
+
+  function applySubgroups(list) {
+    const menu = document.getElementById('subgroup-menu');
+    if (!menu) return;
+    const set = list || [];
+    menu.querySelectorAll('.subgroup-item').forEach(function (item) {
+      item.classList.toggle('active', set.indexOf(item.dataset.subgroup) !== -1);
+    });
+    updateSubgroupLetters();
+  }
+
+  /** Full snapshot saved into a pattern slot: arcs, subgroups, which movement
+   *  paradigm is active (with its own parameters), speed range and transport
+   *  (loop/direction) toggle state. */
+  function snapshotState() {
+    return {
+      arcs:         deepCopyArcs(),
+      subgroups:    getSelectedSubgroups(),
+      module:       window.AppBridge   ? window.AppBridge.getCurrentModule()      : undefined,
+      moduleParams: window.ModulesAPI  ? window.ModulesAPI.snapshotModuleParams() : {},
+      speed:        window.SpeedRangeAPI ? window.SpeedRangeAPI.getValues()       : null,
+      loop:      !!document.getElementById('loop-toggle')?.classList.contains('active'),
+      direction: !!document.getElementById('direction-toggle')?.classList.contains('active'),
+    };
+  }
+
+  /** Applies the module/params/speed/transport part of a snapshot (arcs and
+   *  subgroups are handled separately by the caller). */
+  function applyFullState(s) {
+    if (s.module && window.AppBridge && window.AppBridge.switchModule) {
+      window.AppBridge.switchModule(s.module, { skipAutosave: true });
+    }
+    if (window.ModulesAPI) window.ModulesAPI.applyModuleParams(s.moduleParams);
+    if (s.speed && window.SpeedRangeAPI) window.SpeedRangeAPI.setValues(s.speed);
+
+    const loopBtn = document.getElementById('loop-toggle');
+    if (loopBtn) loopBtn.classList.toggle('active', !!s.loop);
+    const dirBtn = document.getElementById('direction-toggle');
+    if (dirBtn) dirBtn.classList.toggle('active', !!s.direction);
+  }
+
   function autosave() {
     if (!window.CircleState) return;
     // Snap to nearest integer slot before saving
     const slot = Math.round(patternPos);
     patternPos = slot;
     currentPattern = slot;
-    patterns[slot] = deepCopyArcs();
+    patterns[slot] = snapshotState();
     updatePatternSlider();
   }
 
@@ -117,10 +172,10 @@
   }
 
   /**
-   * Compute morphed arc array for a fractional pattern position.
+   * Compute morphed state (arcs + subgroups) for a fractional pattern position.
    * Finds the nearest filled slots below and above pos, then interpolates.
    */
-  function computeArcsAtPos(pos) {
+  function computeStateAtPos(pos) {
     // Search downward for a filled slot
     var srcLo = null, loIdx = Math.floor(pos);
     for (var i = Math.floor(pos); i >= 0; i--) {
@@ -132,7 +187,7 @@
       if (patterns[j]) { srcHi = patterns[j]; hiIdx = j; break; }
     }
 
-    if (!srcLo && !srcHi) return deepCopyArcs();
+    if (!srcLo && !srcHi) return snapshotState();
     if (!srcLo) return JSON.parse(JSON.stringify(srcHi));
     if (!srcHi) return JSON.parse(JSON.stringify(srcLo));
     if (loIdx === hiIdx)  return JSON.parse(JSON.stringify(srcLo));
@@ -140,8 +195,8 @@
     // Normalised t: 0 at loIdx, 1 at hiIdx
     var t = (pos - loIdx) / (hiIdx - loIdx);
 
-    return srcLo.map(function (arcA, idx) {
-      var arcB = srcHi[idx];
+    var arcs = srcLo.arcs.map(function (arcA, idx) {
+      var arcB = srcHi.arcs[idx];
       return {
         active:     t < 0.5 ? arcA.active     : arcB.active,
         created:    t < 0.5 ? arcA.created    : arcB.created,
@@ -151,6 +206,28 @@
         heightMode: t < 0.5 ? arcA.heightMode : arcB.heightMode,
       };
     });
+    var subgroups = (t < 0.5 ? srcLo.subgroups : srcHi.subgroups).slice();
+    var module    = t < 0.5 ? srcLo.module : srcHi.module;
+    var moduleParams = JSON.parse(JSON.stringify(t < 0.5 ? srcLo.moduleParams : srcHi.moduleParams));
+
+    // Speed is a plain min/max pair regardless of module — safe to lerp smoothly.
+    var speed = null;
+    if (srcLo.speed && srcHi.speed) {
+      speed = {
+        min: srcLo.speed.min + (srcHi.speed.min - srcLo.speed.min) * t,
+        max: srcLo.speed.max + (srcHi.speed.max - srcLo.speed.max) * t,
+      };
+    } else {
+      speed = t < 0.5 ? srcLo.speed : srcHi.speed;
+    }
+
+    var loop      = t < 0.5 ? srcLo.loop      : srcHi.loop;
+    var direction = t < 0.5 ? srcLo.direction : srcHi.direction;
+
+    return {
+      arcs: arcs, subgroups: subgroups, module: module, moduleParams: moduleParams,
+      speed: speed, loop: loop, direction: direction,
+    };
   }
 
   function updatePatternSlider() {
@@ -172,8 +249,10 @@
 
   function setPatternPos(pos) {
     patternPos = Math.max(0, Math.min(15, pos));
-    var morphed = computeArcsAtPos(patternPos);
-    window.CircleState.arcs = morphed;
+    var morphed = computeStateAtPos(patternPos);
+    window.CircleState.arcs = morphed.arcs;
+    applySubgroups(morphed.subgroups);
+    applyFullState(morphed);
     currentPattern = Math.round(patternPos);
     updatePatternSlider();
     updateArcButtons();
@@ -205,7 +284,7 @@
     bar.appendChild(thumb);
 
     // Seed slot 0
-    patterns[0] = deepCopyArcs();
+    patterns[0] = snapshotState();
     updatePatternSlider();
 
     // Drag/click interaction
@@ -222,14 +301,14 @@
       isDragging = true;
       // Save current state before morphing
       var snapSlot = Math.round(patternPos);
-      if (patterns[snapSlot] === null) patterns[snapSlot] = deepCopyArcs();
+      if (patterns[snapSlot] === null) patterns[snapSlot] = snapshotState();
 
       // If the click landed on a slot label, snap to that exact integer index.
       // Only use the continuous float position when dragging from empty space.
       var slotEl = e.target.closest('.pslot');
       if (slotEl) {
         var targetSlot = parseInt(slotEl.dataset.slot, 10);
-        if (patterns[targetSlot] === null) patterns[targetSlot] = deepCopyArcs();
+        if (patterns[targetSlot] === null) patterns[targetSlot] = snapshotState();
         setPatternPos(targetSlot);
       } else {
         setPatternPos(posFromEvent(e));
@@ -247,7 +326,7 @@
       isDragging = false;
       // On release: save to the slot we landed on (if exactly on one)
       if (patternPos === Math.floor(patternPos)) {
-        patterns[patternPos] = deepCopyArcs();
+        patterns[patternPos] = snapshotState();
         updatePatternSlider();
       }
     });
@@ -299,6 +378,7 @@
       initArcButtons();
       initPatterns();
       syncHeightSlider(window.CircleState ? window.CircleState.selected : 0);
+      updateSubgroupLetters();
     },
     toggleArc:            toggleArc,
     updateArcButtons:     updateArcButtons,
@@ -306,5 +386,6 @@
     computePositionAngle: computePositionAngle,
     autosave:             autosave,
     applyReadhead:        applyReadhead,
+    refreshSubgroupBadge: updateSubgroupLetters,
   };
 })();

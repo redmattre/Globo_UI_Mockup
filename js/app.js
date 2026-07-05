@@ -20,7 +20,7 @@
     playing:         false,
   };
 
-  const PLAY_CYCLE_MS = 4000; // full sweep 0 -> 1 -> 0
+  const PLAY_CYCLE_MS = 4000; // 0 -> 1 sweep duration, then loops back to 0
   let playRAF   = null;
   let playStart = null;
 
@@ -50,13 +50,18 @@
   /* ═══════════════════════════════════════════════════════════════════════
      MODULE TABS
   ════════════════════════════════════════════════════════════════════════ */
-  function switchModule(name) {
+  function switchModule(name, opts) {
     state.currentModule = name;
     document.querySelectorAll('#module-tabs .tab').forEach(tab => {
       tab.classList.toggle('active', tab.dataset.module === name);
     });
     if (window.ModulesAPI) window.ModulesAPI.renderModule(name);
     if (window.CircleAPI)  window.CircleAPI.setModule(name);
+    // Perimetro has a single speed — lock the min handle to 0
+    if (window.SpeedRangeAPI) window.SpeedRangeAPI.setLocked(name === 'perimetro');
+    // Skipped while a preset is being restored — it would otherwise overwrite
+    // the very slot we're in the middle of applying.
+    if (!(opts && opts.skipAutosave) && window.ArcsAPI) window.ArcsAPI.autosave();
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -377,16 +382,6 @@
       applyReadheadToCircle(state.readheadPos);
     }
 
-    // Ease type selector
-    const easeEl = document.getElementById('rh-ease');
-    if (easeEl) {
-      easeEl.addEventListener('change', () => {
-        state.easeType = easeEl.value;
-        updateDots();
-        applyReadheadToCircle(state.readheadPos);
-      });
-    }
-
     // Intensity slider — updates dots + circle in real time
     const forceEl    = document.getElementById('rh-force');
     const forceValEl = document.getElementById('rh-force-val');
@@ -423,13 +418,12 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
-     TRANSPORT TOGGLE  (mockup play/pause — sweeps the readhead back and forth)
+     TRANSPORT TOGGLE  (mockup play/pause — sweeps the readhead 0 -> 1, loops)
   ════════════════════════════════════════════════════════════════════════ */
   function playTick(ts) {
     if (!state.playing) return;
     if (playStart === null) playStart = ts;
-    const t = ((ts - playStart) % PLAY_CYCLE_MS) / PLAY_CYCLE_MS; // 0..1
-    const pos = t < 0.5 ? t * 2 : 2 - t * 2; // triangle wave 0 -> 1 -> 0
+    const pos = ((ts - playStart) % PLAY_CYCLE_MS) / PLAY_CYCLE_MS; // 0 -> 1, then restarts at 0
     state.readheadPos = pos;
     setReadheadPos(pos);
     applyReadheadToCircle(pos);
@@ -531,6 +525,11 @@
       item.addEventListener('click', () => {
         item.classList.toggle('active');
         updateTitle();
+        if (window.ArcsAPI) {
+          window.ArcsAPI.refreshSubgroupBadge();
+          // Persist the selection into the current pattern preset
+          window.ArcsAPI.autosave();
+        }
       });
     });
 
@@ -620,6 +619,157 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
+     EASE SELECTOR  (custom dropdown for the readhead ease curve, same
+     pattern as spat/subgroup — not an OS-native <select>)
+  ════════════════════════════════════════════════════════════════════════ */
+  function setEaseChoice(key) {
+    const menu = document.getElementById('rh-ease-menu');
+    const btn  = document.getElementById('rh-ease-btn');
+    if (!menu || !btn) return;
+    const choice = menu.querySelector('.rh-ease-choice[data-ease="' + key + '"]');
+    if (!choice) return;
+    menu.querySelectorAll('.rh-ease-choice').forEach(c => c.classList.remove('active'));
+    choice.classList.add('active');
+    btn.textContent = choice.textContent;
+    state.easeType = key;
+    updateDots();
+    applyReadheadToCircle(state.readheadPos);
+  }
+
+  function initEaseSelect() {
+    const btn  = document.getElementById('rh-ease-btn');
+    const menu = document.getElementById('rh-ease-menu');
+    if (!btn || !menu) return;
+
+    function close() {
+      menu.hidden = true;
+      btn.classList.remove('open');
+    }
+    function open() {
+      menu.hidden = false;
+      btn.classList.add('open');
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.hidden ? open() : close();
+    });
+    // Delegated: modules.js adds/removes the "random" choice dynamically
+    menu.addEventListener('click', (e) => {
+      const choice = e.target.closest('.rh-ease-choice');
+      if (!choice) return;
+      setEaseChoice(choice.dataset.ease);
+      close();
+    });
+    document.addEventListener('click', (e) => {
+      if (!menu.hidden && !e.target.closest('#rh-ease-select')) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !menu.hidden) close();
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     UNIFIED SPEED RANGE  (params footer — dual-handle min/max, shared by
+     every movement paradigm. Perimetro has only one speed, so the min
+     handle locks to 0 while it's the active module.)
+  ════════════════════════════════════════════════════════════════════════ */
+  function initSpeedRange() {
+    const track    = document.getElementById('speed-track');
+    const fill     = document.getElementById('speed-fill');
+    const thumbMin = document.getElementById('speed-thumb-min');
+    const thumbMax = document.getElementById('speed-thumb-max');
+    const lblMin   = document.getElementById('speed-min-val');
+    const lblMax   = document.getElementById('speed-max-val');
+    if (!track || !fill || !thumbMin || !thumbMax || !lblMin || !lblMax) return;
+
+    const ABS_MIN = 0, ABS_MAX = 200, MIN_GAP = 5;
+    let min = 40, max = 120;
+    let locked     = false; // true while Perimetro is the active module
+    let preLockMin = min;   // remembered min, restored when unlocked
+    let dragging   = null;  // 'min' | 'max' | null
+
+    function render() {
+      const pMin = ((min - ABS_MIN) / (ABS_MAX - ABS_MIN)) * 100;
+      const pMax = ((max - ABS_MIN) / (ABS_MAX - ABS_MIN)) * 100;
+      thumbMin.style.left = pMin + '%';
+      thumbMax.style.left = pMax + '%';
+      fill.style.left  = pMin + '%';
+      fill.style.width = (pMax - pMin) + '%';
+      lblMin.textContent = Math.round(min);
+      lblMax.textContent = Math.round(max);
+      thumbMin.classList.toggle('locked', locked);
+    }
+
+    function posFromEvent(e) {
+      const rect = track.getBoundingClientRect();
+      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+      return ABS_MIN + (x / rect.width) * (ABS_MAX - ABS_MIN);
+    }
+
+    function moveTo(val) {
+      if (dragging === 'min' && !locked) {
+        min = Math.max(ABS_MIN, Math.min(val, max - MIN_GAP));
+        preLockMin = min;
+      } else if (dragging === 'max') {
+        max = Math.min(ABS_MAX, Math.max(val, min + MIN_GAP));
+      }
+      render();
+    }
+
+    thumbMin.addEventListener('mousedown', e => {
+      if (locked) return;
+      dragging = 'min';
+      e.preventDefault();
+    });
+    thumbMax.addEventListener('mousedown', e => {
+      dragging = 'max';
+      e.preventDefault();
+    });
+    track.addEventListener('mousedown', e => {
+      if (e.target === thumbMin || e.target === thumbMax) return;
+      const val = posFromEvent(e);
+      dragging = (!locked && Math.abs(val - min) <= Math.abs(val - max)) ? 'min' : 'max';
+      moveTo(val);
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => { if (dragging) moveTo(posFromEvent(e)); });
+    window.addEventListener('mouseup',   () => {
+      if (dragging && window.ArcsAPI) window.ArcsAPI.autosave();
+      dragging = null;
+    });
+
+    render();
+
+    window.SpeedRangeAPI = {
+      getValues() { return { min, max }; },
+      setValues(v) {
+        if (!v) return;
+        max = Math.max(ABS_MIN, Math.min(v.max, ABS_MAX));
+        if (locked) {
+          preLockMin = (typeof v.min === 'number') ? v.min : preLockMin;
+          min = ABS_MIN;
+        } else {
+          min = Math.max(ABS_MIN, Math.min(v.min, max - MIN_GAP));
+          preLockMin = min;
+        }
+        render();
+      },
+      setLocked(next) {
+        if (next === locked) return;
+        locked = next;
+        if (locked) {
+          preLockMin = min;
+          min = ABS_MIN;
+        } else {
+          min = preLockMin;
+        }
+        render();
+      },
+    };
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
      SLAVE INDICATOR  (diagonal lines, bottom-right of params section)
   ════════════════════════════════════════════════════════════════════════ */
   function drawSlaveIndicator() {
@@ -694,6 +844,18 @@
     // Transport toggle (mockup play/pause)
     document.getElementById('transport-toggle')
       ?.addEventListener('click', () => setPlaying(!state.playing));
+
+    // Loop / direction: mockup, just a visual toggle for now
+    document.getElementById('loop-toggle')
+      ?.addEventListener('click', function () {
+        this.classList.toggle('active');
+        if (window.ArcsAPI) window.ArcsAPI.autosave();
+      });
+    document.getElementById('direction-toggle')
+      ?.addEventListener('click', function () {
+        this.classList.toggle('active');
+        if (window.ArcsAPI) window.ArcsAPI.autosave();
+      });
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -739,6 +901,9 @@
       return window.ArcsAPI ? window.ArcsAPI.computePositionAngle(pos) : 0;
     },
     onCircleChange() {},
+    setEaseChoice,
+    getCurrentModule() { return state.currentModule; },
+    switchModule,
   };
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -751,7 +916,10 @@
     initResize();
     initSubgroupSelect();
     initSpatSelect();
+    initEaseSelect();
     initBrandMenu();
+    initSpeedRange();
+    if (window.SpeedRangeAPI) window.SpeedRangeAPI.setLocked(state.currentModule === 'perimetro');
     drawSlaveIndicator();
     // Init arc buttons + pattern bar (ArcsAPI defined in arcs.js)
     if (window.ArcsAPI) window.ArcsAPI.init();
