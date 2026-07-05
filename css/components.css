@@ -309,6 +309,8 @@
 .mode-toggle[data-mode="hemisphere"] .ico-hemi   { display: block; }
 .mode-toggle[data-mode="sphere"]     .ico-sphere { display: block; }
 
+.pattern-mode-toggle { color: var(--text-2); }
+
 .height-lbl {
   font-family: var(--font-mono);
   font-size: var(--sz-xs);
@@ -611,6 +613,19 @@
 }
 .section-title:first-child { margin-top: 0; }
 
+.empty-hint {
+  font-size: var(--sz-base);
+  color: var(--text-3);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* Diretto mode: readhead / spat / transport don't apply — no movement to control */
+.disabled-ui {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 .param-group {
   margin-bottom: 14px;
 }
@@ -792,14 +807,37 @@
    Arc button bar + Pattern presets bar
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Arc button bar (lives inside panel-header) ─────────────────────────── */
+/* ── Arc button bar (own row below the circle) ────────────────────────────── */
+.arc-btn-bar-wrap {
+  /* flex: 0 0 32px; */
+  display: flex;
+  align-items: center;
+  padding: 0 var(--pad-x);
+  /* border-top: 1px solid var(--border); */
+  margin-bottom: .5rem;
+  margin-top: .5rem;
+  background: var(--surface);
+  max-height: fit-content;
+}
+
 .arc-btn-bar {
   flex: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: 0 4px;
   overflow: visible;
+}
+
+/* Invisible — mirrors .height-control's footprint (mode-toggle width + its
+   margin-right) so the centered patches line up with the circle itself,
+   not with the full width of the row. */
+.height-control-ghost {
+  flex: 0 0 auto;
+  width: 2rem;
+  margin-right: .7rem;
+  visibility: hidden;
 }
 
 .arc-btn {
@@ -843,15 +881,16 @@
   pointer-events: none;
 }
 
-/* ── Pattern morph slider (16 slots) ─────────────────────────────────────── */
+/* ── Pattern presets (lives inside panel-header) ──────────────────────────── */
+.pattern-mode-toggle .ico { display: none; }
+.pattern-mode-toggle[data-mode="buttons"] .ico-buttons { display: block; }
+.pattern-mode-toggle[data-mode="slider"]  .ico-slider  { display: block; }
+
 .pattern-bar-wrap {
-  flex: 0 0 32px;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  padding: 0 var(--pad-x);
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-  max-height: fit-content;
 }
 
 .pattern-bar {
@@ -886,9 +925,9 @@
 
 /* The slot at the current (rounded) pattern position */
 .pslot.active {
-  color: transparent;
-  background: rgba(26, 25, 23, 0.5);
-  font-weight: 600;
+  color: var(--ink);
+  background: var(--border-strong);
+  font-weight: 700;
 }
 
 /* One of the two slots being morphed between */
@@ -910,15 +949,14 @@
   z-index: 3;
   border-radius: 0;
 }
-.pthumb::before {
-  content: '';
-  position: absolute;
-  top: -3px;
-  left: 50%;
-  width: 7px;
-  height: 7px;
-  background: var(--ink);
-  transform: translate(-50%, 0) rotate(45deg);
+
+/* Buttons mode: discrete clicks only, no drag position indicator */
+.pattern-bar[data-mode="buttons"] .pthumb { display: none; }
+
+/* Slider mode: dragging can't reach slots with nothing saved in them */
+.pattern-bar[data-mode="slider"] .pslot:not(.filled) {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 /* ── UNIFIED SPEED RANGE (params footer, dual-handle min/max) ────────────────── */

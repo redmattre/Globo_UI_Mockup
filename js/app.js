@@ -59,9 +59,23 @@
     if (window.CircleAPI)  window.CircleAPI.setModule(name);
     // Perimetro has a single speed — lock the min handle to 0
     if (window.SpeedRangeAPI) window.SpeedRangeAPI.setLocked(name === 'perimetro');
+    // Diretto spreads sound statically over the drawn arcs — no position to
+    // read, no spat algorithm to pick, nothing to transport.
+    setDirettoMode(name === 'diretto');
     // Skipped while a preset is being restored — it would otherwise overwrite
     // the very slot we're in the middle of applying.
     if (!(opts && opts.skipAutosave) && window.ArcsAPI) window.ArcsAPI.autosave();
+  }
+
+  /** Diretto has no movement: dim + block interaction on the readhead, the
+   *  spat selector and the whole transport footer (speed + loop/direction/play). */
+  function setDirettoMode(active) {
+    const readhead = document.getElementById('readhead-bar');
+    const spatSelect = document.getElementById('spat-select');
+    const footer = document.querySelector('.params-footer');
+    [readhead, spatSelect, footer].forEach(el => {
+      if (el) el.classList.toggle('disabled-ui', active);
+    });
   }
 
   /* ═══════════════════════════════════════════════════════════════════════

@@ -236,19 +236,27 @@
       // Center of slot i is at (i + 0.5) / 16 of track width
       thumb.style.left = ((patternPos + 0.5) / 16 * 100).toFixed(3) + '%';
     }
+    var count = filledCount();
     document.querySelectorAll('.pslot').forEach(function (el) {
       var i = parseInt(el.dataset.slot, 10);
       var onActive  = (Math.round(patternPos) === i);
       var isMorphLo = (!onActive && Math.floor(patternPos) === i && patternPos !== Math.floor(patternPos));
       var isMorphHi = (!onActive && Math.ceil(patternPos)  === i && patternPos !== Math.ceil(patternPos));
-      el.classList.toggle('filled',   patterns[i] !== null);
+      var filled = patterns[i] !== null;
+      el.classList.toggle('filled',   filled);
       el.classList.toggle('active',   onActive);
       el.classList.toggle('morphing', !onActive && (isMorphLo || isMorphHi));
+      el.title = filled
+        ? 'Preset ' + (i + 1) + ' — clic: richiama · shift+clic: elimina'
+        : (patternMode === 'buttons' && i === count ? 'Preset ' + (i + 1) + ' — clic: salva qui' : '');
     });
   }
 
   function setPatternPos(pos) {
-    patternPos = Math.max(0, Math.min(15, pos));
+    // No holes allowed: filled slots are always a contiguous run from 0,
+    // so the reachable range simply stops at the last filled one.
+    var maxPos = Math.max(0, filledCount() - 1);
+    patternPos = Math.max(0, Math.min(maxPos, pos));
     var morphed = computeStateAtPos(patternPos);
     window.CircleState.arcs = morphed.arcs;
     applySubgroups(morphed.subgroups);
@@ -262,6 +270,62 @@
     applyReadhead(rpos);
   }
 
+  /* ── Preset memory: contiguous, no holes ─────────────────────────────────
+     Filled slots always occupy indices [0, filledCount()-1]. Creating always
+     appends at the end; deleting always compacts what follows. */
+  function filledCount() {
+    var n = 0;
+    while (n < 16 && patterns[n] !== null) n++;
+    return n;
+  }
+
+  /** Load an existing preset by index (clamped to the filled range). */
+  function loadPreset(idx) {
+    var count = filledCount();
+    if (count === 0) return;
+    setPatternPos(Math.max(0, Math.min(idx, count - 1)));
+  }
+
+  /** Save the current live state as a brand-new preset — always at the next
+   *  free slot, regardless of which empty slot was clicked. */
+  function createPreset() {
+    var count = filledCount();
+    if (count >= 16) return; // memory full
+    patterns[count] = snapshotState();
+    setPatternPos(count);
+  }
+
+  /** Remove a preset and shift everything after it down, so no gap is left.
+   *  Refuses to delete the last remaining preset — there must always be one. */
+  function deletePreset(idx) {
+    var count = filledCount();
+    if (idx >= count || count <= 1) return;
+    patterns.splice(idx, 1);
+    patterns.push(null);
+    // Round first: if we were mid-drag (fractional patternPos), we still want
+    // to land exactly on a real preset, not an interpolated position.
+    loadPreset(Math.min(Math.round(patternPos), count - 2));
+  }
+
+  var patternMode = 'buttons'; // 'buttons' | 'slider'
+
+  function setPatternMode(mode) {
+    patternMode = mode;
+    var bar    = document.getElementById('pattern-bar');
+    var toggle = document.getElementById('pattern-mode-toggle');
+    if (bar) {
+      bar.dataset.mode = mode;
+      bar.style.cursor = mode === 'slider' ? 'ew-resize' : 'pointer';
+    }
+    if (toggle) {
+      toggle.dataset.mode = mode;
+      toggle.title = mode === 'buttons'
+        ? 'Modalità a bottoni (clic: passa a slider)'
+        : 'Modalità slider (clic: passa a bottoni)';
+    }
+    updatePatternSlider();
+  }
+
   function initPatterns() {
     var bar = document.getElementById('pattern-bar');
     if (!bar) return;
@@ -273,11 +337,10 @@
       slot.className = 'pslot' + (i === 0 ? ' active filled' : '');
       slot.dataset.slot = i;
       slot.textContent = i + 1;
-      slot.title = 'Preset ' + (i + 1);
       bar.appendChild(slot);
     }
 
-    // Draggable thumb (vertical line indicator)
+    // Draggable thumb (slider mode position indicator)
     var thumb = document.createElement('div');
     thumb.className = 'pthumb';
     thumb.id = 'pattern-thumb';
@@ -287,7 +350,24 @@
     patterns[0] = snapshotState();
     updatePatternSlider();
 
-    // Drag/click interaction
+    /* ── Buttons mode: click a slot to load it, click empty space to create
+       a new one at the frontier, shift-click a filled slot to delete it ── */
+    bar.addEventListener('click', function (e) {
+      if (patternMode !== 'buttons') return;
+      var slotEl = e.target.closest('.pslot');
+      if (!slotEl) return;
+      var idx   = parseInt(slotEl.dataset.slot, 10);
+      var count = filledCount();
+      if (e.shiftKey) {
+        if (idx < count) deletePreset(idx);
+        return;
+      }
+      if (idx < count) loadPreset(idx);
+      else createPreset();
+    });
+
+    /* ── Slider mode: drag to morph between existing presets only; the
+       range stops at the last filled slot. Shift-click still deletes. ── */
     var isDragging = false;
 
     function posFromEvent(e) {
@@ -298,21 +378,17 @@
     }
 
     bar.addEventListener('mousedown', function (e) {
-      isDragging = true;
-      // Save current state before morphing
-      var snapSlot = Math.round(patternPos);
-      if (patterns[snapSlot] === null) patterns[snapSlot] = snapshotState();
-
-      // If the click landed on a slot label, snap to that exact integer index.
-      // Only use the continuous float position when dragging from empty space.
-      var slotEl = e.target.closest('.pslot');
-      if (slotEl) {
-        var targetSlot = parseInt(slotEl.dataset.slot, 10);
-        if (patterns[targetSlot] === null) patterns[targetSlot] = snapshotState();
-        setPatternPos(targetSlot);
-      } else {
-        setPatternPos(posFromEvent(e));
+      if (patternMode !== 'slider') return;
+      if (e.shiftKey) {
+        var slotEl = e.target.closest('.pslot');
+        if (slotEl) {
+          var idx = parseInt(slotEl.dataset.slot, 10);
+          if (idx < filledCount()) deletePreset(idx);
+        }
+        return;
       }
+      isDragging = true;
+      setPatternPos(posFromEvent(e));
       e.preventDefault();
     });
 
@@ -322,14 +398,17 @@
     });
 
     window.addEventListener('mouseup', function () {
-      if (!isDragging) return;
       isDragging = false;
-      // On release: save to the slot we landed on (if exactly on one)
-      if (patternPos === Math.floor(patternPos)) {
-        patterns[patternPos] = snapshotState();
-        updatePatternSlider();
-      }
     });
+
+    // Mode toggle
+    var modeToggle = document.getElementById('pattern-mode-toggle');
+    if (modeToggle) {
+      modeToggle.addEventListener('click', function () {
+        setPatternMode(patternMode === 'buttons' ? 'slider' : 'buttons');
+      });
+    }
+    setPatternMode('buttons');
   }
 
   /* ── Multi-arc readhead path ────────────────────────────────────────────── */

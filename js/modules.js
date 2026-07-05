@@ -78,6 +78,13 @@
     `;
   }
 
+  /* ── DIRETTO ───────────────────────────────────────────────────────────── */
+  // No movement: sound is spread statically across the drawn arcs, so the
+  // readhead, spat selector and transport controls are all disabled.
+  function renderDiretto() {
+    return `<div class="empty-hint">Nessun movimento — il suono è distribuito staticamente sugli archi disegnati sul cerchio.</div>`;
+  }
+
   /* ── Render + bind events ──────────────────────────────────────────────── */
   function renderModule(name) {
     const container = document.getElementById('module-params');
@@ -88,6 +95,7 @@
       segmento:  renderSegmento,
       traversa:  renderTraversa,
       aleatorio: renderAleatorio,
+      diretto:   renderDiretto,
     };
 
     const fn = renderers[name];
