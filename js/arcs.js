@@ -48,14 +48,13 @@
   function updateArcButtons() {
     const cs = window.CircleState;
     if (!cs) return;
-    // Selection indicator follows SVG hover; falls back to last-selected
-    const displaySel = (cs.hovered !== undefined && cs.hovered >= 0) ? cs.hovered : cs.selected;
     document.querySelectorAll('.arc-btn').forEach(function (btn) {
       const i = parseInt(btn.dataset.arc, 10);
       const arc = cs.arcs[i];
       const created = !!(arc && arc.created);
       btn.classList.toggle('active',   !!(arc && arc.active));
-      btn.classList.toggle('selected', i === displaySel);
+      // Ring only tracks live hover on the circle — no fallback to last-selected
+      btn.classList.toggle('selected', cs.hovered >= 0 && i === cs.hovered);
       btn.classList.toggle('locked',   !created);
       btn.title = 'Arco ' + (i + 1) + ' — ' + (created
         ? 'click: accendi / spegni'

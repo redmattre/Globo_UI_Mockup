@@ -145,6 +145,7 @@ ul { list-style: none; }
 
 /* ── CIRCLE SECTION (left column) ──────────────────────────────────────────── */
 .circle-section {
+  position: relative;
   flex: 0 0 var(--circle-w);
   display: flex;
   flex-direction: column;
@@ -183,7 +184,7 @@ ul { list-style: none; }
   align-items: center;
   /* gap: 5px; */
   /* padding: 6px 8px 6px 0; */
-  margin-right: 1rem;
+  margin-right: .7rem;
   min-width: 24px;
 }
 

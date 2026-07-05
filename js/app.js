@@ -290,8 +290,7 @@
           body.querySelectorAll('.spat-item').forEach(i => i.classList.remove('active'));
           item.classList.add('active');
           // Mirror to main panel dropdown
-          const spatSel = document.getElementById('spat-type');
-          if (spatSel) spatSel.value = item.dataset.spat;
+          setSpatChoice(item.dataset.spat);
         });
       });
     }
@@ -500,6 +499,127 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
+     SUBGROUP SELECTOR  (mockup — which speaker subgroup(s) this spat drives;
+     multi-select, options are hardcoded, real subgroups will come from the
+     Rig page)
+  ════════════════════════════════════════════════════════════════════════ */
+  function initSubgroupSelect() {
+    const btn  = document.getElementById('subgroup-btn');
+    const menu = document.getElementById('subgroup-menu');
+    if (!btn || !menu) return;
+
+    function close() {
+      menu.hidden = true;
+      btn.classList.remove('open');
+    }
+    function open() {
+      menu.hidden = false;
+      btn.classList.add('open');
+    }
+    function updateTitle() {
+      const names = Array.from(menu.querySelectorAll('.subgroup-item.active'))
+        .map(i => i.textContent.trim());
+      btn.title = names.length ? 'Subgroup: ' + names.join(', ') : 'Nessun subgroup selezionato';
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.hidden ? open() : close();
+    });
+
+    menu.querySelectorAll('.subgroup-item').forEach(item => {
+      item.addEventListener('click', () => {
+        item.classList.toggle('active');
+        updateTitle();
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!menu.hidden && !e.target.closest('#subgroup-select')) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !menu.hidden) close();
+    });
+
+    updateTitle();
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     BRAND CREDITS  (click the logo to show dev/build info)
+  ════════════════════════════════════════════════════════════════════════ */
+  function initBrandMenu() {
+    const btn      = document.getElementById('brand-btn');
+    const menu     = document.getElementById('brand-menu');
+    const backdrop = document.getElementById('brand-backdrop');
+    if (!btn || !menu || !backdrop) return;
+
+    function close() {
+      menu.classList.remove('open');
+      backdrop.classList.remove('open');
+    }
+    function open() {
+      menu.classList.add('open');
+      backdrop.classList.add('open');
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.contains('open') ? close() : open();
+    });
+    backdrop.addEventListener('click', close);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && menu.classList.contains('open')) close();
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     SPAT SELECTOR  (custom dropdown in header, same pattern as the subgroup
+     button — not an OS-native <select>)
+  ════════════════════════════════════════════════════════════════════════ */
+  function setSpatChoice(key) {
+    const menu = document.getElementById('spat-menu');
+    const btn  = document.getElementById('spat-btn');
+    if (!menu || !btn) return;
+    const choice = menu.querySelector('.spat-choice[data-spat="' + key + '"]');
+    if (!choice) return;
+    menu.querySelectorAll('.spat-choice').forEach(c => c.classList.remove('active'));
+    choice.classList.add('active');
+    btn.textContent = choice.textContent;
+  }
+
+  function initSpatSelect() {
+    const btn  = document.getElementById('spat-btn');
+    const menu = document.getElementById('spat-menu');
+    if (!btn || !menu) return;
+
+    function close() {
+      menu.hidden = true;
+      btn.classList.remove('open');
+    }
+    function open() {
+      menu.hidden = false;
+      btn.classList.add('open');
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.hidden ? open() : close();
+    });
+    menu.querySelectorAll('.spat-choice').forEach(choice => {
+      choice.addEventListener('click', () => {
+        setSpatChoice(choice.dataset.spat);
+        close();
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!menu.hidden && !e.target.closest('#spat-select')) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !menu.hidden) close();
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
      SLAVE INDICATOR  (diagonal lines, bottom-right of params section)
   ════════════════════════════════════════════════════════════════════════ */
   function drawSlaveIndicator() {
@@ -571,10 +691,6 @@
         syncGSToggle();
       });
 
-    // Spat selector mirrors selection back if changed directly
-    document.getElementById('spat-type')
-      ?.addEventListener('change', () => { /* extend if needed */ });
-
     // Transport toggle (mockup play/pause)
     document.getElementById('transport-toggle')
       ?.addEventListener('click', () => setPlaying(!state.playing));
@@ -633,6 +749,9 @@
     initReadhead();
     initHeightSlider();
     initResize();
+    initSubgroupSelect();
+    initSpatSelect();
+    initBrandMenu();
     drawSlaveIndicator();
     // Init arc buttons + pattern bar (ArcsAPI defined in arcs.js)
     if (window.ArcsAPI) window.ArcsAPI.init();

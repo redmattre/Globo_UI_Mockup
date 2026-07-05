@@ -3,6 +3,173 @@
    All reusable UI component styles
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ── BRAND LOGO + CREDITS (panel header, left of the arc buttons) ───────────── */
+.brand-select {
+  position: relative;
+  flex: 0 0 auto;
+  margin-right: 4px;
+}
+.brand-btn {
+  display: flex;
+  align-items: center;
+  padding: 3px 4px;
+  border-radius: var(--r);
+  transition: background 0.12s;
+}
+.brand-btn:hover { background: var(--ink-fill); }
+
+.brand-logo {
+  height: 26px;
+  width: auto;
+  display: block;
+  filter: brightness(0);
+}
+
+/* Credits modal: centered card + blurred backdrop, animated in/out */
+.brand-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 25, 23, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, visibility 0s linear 0.18s;
+  z-index: 100;
+}
+.brand-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.18s ease;
+}
+
+.brand-menu {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  min-width: 220px;
+  padding: 18px 20px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 40px rgba(26, 25, 23, 0.25);
+  z-index: 101;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, -50%) scale(0.94);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s linear 0.16s;
+}
+.brand-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-backdrop, .brand-menu { transition: none; }
+}
+
+.brand-menu-title {
+  font-size: var(--sz-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.brand-menu-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: var(--sz-base);
+  padding: 3px 0;
+}
+.brand-menu-lbl { color: var(--text-3); }
+.brand-menu-val { color: var(--text); }
+
+/* ── SUBGROUP SELECTOR (top-right of the circle section) ───────────────────── */
+.subgroup-select {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+}
+.subgroup-btn {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.subgroup-btn .ico { width: 13px; height: 13px; }
+.subgroup-btn:hover { background: var(--ink-fill); }
+.subgroup-btn.open {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.subgroup-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  box-shadow: 0 2px 8px rgba(26, 25, 23, 0.14);
+}
+.subgroup-menu[hidden] { display: none; }
+
+.subgroup-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  font-size: var(--sz-base);
+  color: var(--text);
+  text-align: left;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+.subgroup-item:hover { background: var(--ink-fill); }
+
+.subgroup-check {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  border: 1.4px solid var(--border-strong);
+  border-radius: 2px;
+}
+.subgroup-item.active .subgroup-check {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.subgroup-item.active .subgroup-check::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: -0.5px;
+  width: 3px;
+  height: 6px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(40deg);
+}
+
 /* ── LOGO BUTTON ────────────────────────────────────────────────────────────── */
 .logo-btn {
   flex: 0 0 28px;
@@ -334,11 +501,8 @@
 .che-input::-webkit-outer-spin-button { opacity: 0.4; }
 .che-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-fill); }
 /* ── SPAT SELECTOR (header, left of settings button) ───────────────────────── */
-.spat-sel {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  text-align: center;
+.spat-select { position: relative; }
+.spat-btn {
   height: 28px;
   padding: 0 8px;
   font-size: var(--sz-base);
@@ -350,8 +514,36 @@
   cursor: pointer;
   transition: background 0.12s;
 }
-.spat-sel:hover  { background: var(--ink-fill); }
-.spat-sel:focus  { outline: 1px solid var(--ink); border-radius: var(--r-sm); }
+.spat-btn:hover { background: var(--ink-fill); }
+.spat-btn.open  { background: var(--ink-fill); }
+
+.spat-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  box-shadow: 0 2px 8px rgba(26, 25, 23, 0.14);
+  z-index: 20;
+}
+.spat-menu[hidden] { display: none; }
+
+.spat-choice {
+  padding: 5px 8px;
+  font-size: var(--sz-base);
+  color: var(--text);
+  text-align: left;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+.spat-choice:hover  { background: var(--ink-fill); }
+.spat-choice.active { background: var(--ink-fill); font-weight: 600; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MODULE PARAMETER PANELS
@@ -560,13 +752,13 @@
 }
 
 .arc-btn {
-  width: 22px;
-  height: 20px;
+  width: 18px;
+  height: 16px;
   border: 1.5px solid var(--arc-color, var(--border));
   border-radius: var(--r-sm, 3px);
   background: transparent;
   color: var(--arc-color, var(--text-3));
-  font-size: 9px;
+  font-size: 8px;
   font-family: var(--font-mono);
   font-weight: 500;
   cursor: pointer;

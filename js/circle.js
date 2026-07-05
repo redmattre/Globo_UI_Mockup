@@ -9,20 +9,20 @@
 
   /* ── Arc colours ────────────────────────────────────────────────────────── */
   window.ARC_COLORS = [
-    '#4F6AB8',  // 1  blue     (pastello sobrio)
-    '#5FA07C',  // 2  green
-    '#CE9A54',  // 3  ochre / amber
-    '#9A72B4',  // 4  violet
-    '#4FA0A6',  // 5  teal
-    '#C0A94F',  // 6  mustard
-    '#C8737F',  // 7  rose / red
-    '#7E93AA',  // 8  slate blue
+    '#E03A3E',  // 1  red
+    '#963D97',  // 2  purple
+    '#009DDC',  // 3  blue
+    '#00A99D',  // 4  teal
+    '#61BB46',  // 5  green
+    '#A5CD39',  // 6  yellow-green
+    '#FDB827',  // 7  yellow
+    '#F5821F',  // 8  orange
   ];
 
   /* ── State ──────────────────────────────────────────────────────────────── */
   window.CircleState = {
     arcs: [
-      { active: true,  created: true,  left: 330, right:  60, height: 0, heightMode: 'hemisphere' },
+      { active: true,  created: true,  left: 0, right:  359.9, height: 0, heightMode: 'hemisphere' },
       { active: false, created: false, left:  60, right: 105, height: 0, heightMode: 'hemisphere' },
       { active: false, created: false, left: 105, right: 150, height: 0, heightMode: 'hemisphere' },
       { active: false, created: false, left: 150, right: 195, height: 0, heightMode: 'hemisphere' },
@@ -295,7 +295,6 @@
       g.appendChild(el('path', {
         d: arcPath(arc.left, arc.right), fill: 'none',
         stroke: col, 'stroke-width': isHov ? '2.8' : '2',
-        opacity: isHov ? '1' : '0.7',
       }));
 
       /* Handles — only when hovered */
