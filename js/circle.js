@@ -343,13 +343,25 @@
       svg.appendChild(g);
     });
 
-    /* 5 ── Position dot (pointer-events:none — mouse passes through to arc below) */
-    var posPt = pt(cs.positionAngle);
-    svg.appendChild(el('circle', {
-      cx: posPt.x.toFixed(2), cy: posPt.y.toFixed(2), r: '5',
-      fill: '#0F0E0D', stroke: '#fff', 'stroke-width': '1.5',
-      class: 'position-dot', 'pointer-events': 'none',
-    }));
+    /* 5 ── Position dot, OR — in Diretto mode — static black semi-arcs over
+            every active arc (sound is spread there, nothing moves) */
+    if (cs.module === 'diretto') {
+      cs.arcs.forEach(function (arc) {
+        if (!arc.active) return;
+        svg.appendChild(el('path', {
+          d: arcPath(arc.left, arc.right, R + 7), fill: 'none',
+          stroke: '#0F0E0D', 'stroke-width': '2',
+          'pointer-events': 'none',
+        }));
+      });
+    } else {
+      var posPt = pt(cs.positionAngle);
+      svg.appendChild(el('circle', {
+        cx: posPt.x.toFixed(2), cy: posPt.y.toFixed(2), r: '5',
+        fill: '#0F0E0D', stroke: '#fff', 'stroke-width': '1.5',
+        class: 'position-dot', 'pointer-events': 'none',
+      }));
+    }
   }
 
   /* ── SVG coordinate conversion ──────────────────────────────────────────── */
