@@ -231,6 +231,15 @@
   flex-wrap: wrap;
 }
 
+/* Settings tabs, inline in the secondary-panel header — no separator line
+   of its own (the header already has one), roomier gap between entries */
+.settings-tabs-bar {
+  flex: 0 0 auto;
+  overflow: visible;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
 .tab {
   display: inline-flex;
   align-items: center;
@@ -727,46 +736,200 @@
 .speaker-item {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 2px;
+  gap: 5px;
+  padding: 4px 2px;
   border-bottom: 1px solid var(--border);
   font-size: var(--sz-base);
+  cursor: pointer;
+  transition: background 0.1s;
 }
 .speaker-item:last-child { border-bottom: none; }
-.speaker-item input[type="checkbox"] {
-  accent-color: var(--accent);
-  width: 12px; height: 12px;
-  cursor: pointer;
-  flex-shrink: 0;
+.speaker-item:hover    { background: var(--ink-fill); }
+.speaker-item.selected { background: var(--ink-fill); }
+
+/* Column header row above the list — same fixed widths as the rows, so the
+   per-row inline numboxes line up under their label */
+.rig-list-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 2px 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
 }
+.rig-col-lbl {
+  width: 42px;
+  flex: 0 0 42px;
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+.rig-check-spacer { width: 11px; flex: 0 0 11px; }
+
 .speaker-num {
+  width: 18px;
+  flex: 0 0 18px;
   font-size: var(--sz-xs);
   color: var(--text-3);
-  min-width: 18px;
 }
-.speaker-name { color: var(--text-2); flex: 1; }
-.speaker-pos {
-  font-family: var(--font-mono);
-  font-size: var(--sz-xs);
-  color: var(--text-3);
+.speaker-name {
+  flex: 1 1 34px;
+  min-width: 0;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Rig 3D visualization placeholder */
+/* Inline position numboxes — all equally sized (Az/El/Dist/X/Y/Z), draggable
+   (vertical scrub) as well as directly typeable */
+.rig-input {
+  width: 42px;
+  flex: 0 0 42px;
+  font-size: var(--sz-sm);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 3px 4px;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.rig-input::-webkit-inner-spin-button,
+.rig-input::-webkit-outer-spin-button { opacity: 0; }
+.rig-input:focus { outline: none; border-color: var(--border-strong); background: var(--white); }
+.rig-scrub { cursor: ns-resize; }
+body.rig-scrubbing, body.rig-scrubbing * { cursor: ns-resize !important; user-select: none; }
+
+/* Custom checkbox — subset membership (same visual language as .subgroup-check) */
+.rig-check {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  border: 1.4px solid var(--border-strong);
+  border-radius: 2px;
+}
+.rig-check.checked {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.rig-check.checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: -0.5px;
+  width: 3px;
+  height: 6px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(40deg);
+}
+
+/* ── RIG TAB — left column: view toggle (isometric viz / subsets) ───────────── */
+.settings-left.rig-left  { flex: 0 0 260px; }
+.settings-right.rig-right { flex: 1; min-width: 0; }
+
+/* ── AUDIO TAB — same column spacing as the Rig tab ──────────────────────────── */
+.settings-left.audio-left  { flex: 0 0 260px; }
+.settings-right.audio-right { flex: 1; min-width: 0; }
+
+/* ── GENERALI TAB — same column spacing as the Rig/Audio tabs ────────────────── */
+.settings-left.generali-left  { flex: 0 0 260px; }
+.settings-right.generali-right { flex: 1; min-width: 0; }
+
+.rig-view-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.rig-view-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.rig-view-btn .ico { width: 15px; height: 15px; }
+.rig-view-btn:hover { background: var(--ink-fill); }
+.rig-view-btn.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+/* Isometric placement preview */
 .rig-viz {
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--white);
   padding: 8px;
-  margin-top: 8px;
-  max-width: 220px;
+  max-width: 260px;
+}
+.rig-dot, .rig-dot-label { cursor: pointer; }
+.rig-dot-label {
+  font-size: 7px;
+  fill: var(--text-2);
+  text-anchor: middle;
+  user-select: none;
 }
 
-/* ── OUTPUT MATRIX (Generali tab) ───────────────────────────────────────────── */
+/* Subsets (groups) list — same entry-list visual language as .spat-item */
+.rig-subset-list { display: flex; flex-direction: column; gap: 3px; }
+.rig-subset-item {
+  padding: 6px 10px;
+  font-size: var(--sz-base);
+  border-radius: var(--r);
+  cursor: pointer;
+  color: var(--text-2);
+  transition: background 0.1s, color 0.1s;
+  border: 1px solid transparent;
+}
+.rig-subset-item:hover  { background: var(--ink-fill); }
+.rig-subset-item.active {
+  background: var(--ink-fill);
+  color: var(--ink);
+  border-color: var(--border-strong);
+  font-weight: 600;
+}
+
+/* Shared "+" / delete toolbar (speaker list, subset list) */
+.rig-toolbar {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0;
+}
+.rig-tool-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.rig-tool-btn .ico { width: 13px; height: 13px; }
+.rig-tool-btn:hover:not(:disabled) { background: var(--ink-fill); }
+.rig-tool-btn:disabled { opacity: 0.3; pointer-events: none; }
+
+/* ── OUTPUT MATRIX (Generali tab) — rows = Rig speakers, cols = outputs ──────── */
+.matrix-scroll { overflow-x: auto; }
 .matrix-grid {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: 8px;
+  width: fit-content;
 }
 .matrix-header,
 .matrix-row {
@@ -779,29 +942,37 @@
   color: var(--text-3);
   min-width: 18px;
   text-align: center;
+  transition: color 0.1s;
 }
+.matrix-corner, .matrix-row-lbl {
+  width: 32px;
+  flex: 0 0 32px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.matrix-row-lbl { color: var(--text-2); }
+
 .matrix-cell {
   width: 20px;
   height: 20px;
+  flex-shrink: 0;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--white);
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
 }
 .matrix-cell:hover  { background: var(--ink-fill); border-color: var(--border-strong); }
 .matrix-cell.active { background: var(--ink); border-color: var(--ink); }
 
-/* Settings placeholder text (dummy params) */
-.settings-section-title {
-  font-size: var(--sz-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-3);
-  padding-bottom: 5px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
+/* Row/column highlight on hover (spans the whole grid, not just one cell) */
+.matrix-cell.row-hover:not(.active),
+.matrix-cell.col-hover:not(.active) { background: var(--ink-fill); border-color: var(--border-strong); }
+.matrix-cell.active.row-hover,
+.matrix-cell.active.col-hover { box-shadow: inset 0 0 0 1.5px #fff; }
+.matrix-lbl.row-hover, .matrix-lbl.col-hover { color: var(--ink); font-weight: 700; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Arc button bar + Pattern presets bar

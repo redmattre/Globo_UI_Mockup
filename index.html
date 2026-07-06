@@ -259,30 +259,48 @@
     <div class="panel overlay" id="secondary-panel" hidden>
 
       <header class="panel-header">
-        <!-- Global / stray toggle (left) -->
-        <div class="gs-toggle" id="gs-toggle">
-          <button class="gs-btn active" data-gs="global">global</button>
-          <button class="gs-btn"        data-gs="stray">stray</button>
+        <!-- Brand logo: click to show credits (same trigger as main panel) -->
+        <div class="brand-select" id="brand-select-2">
+          <button class="brand-btn" id="brand-btn-2" title="Crediti">
+            <img class="brand-logo" src="media/Logo_TempoReale_white.webp" alt="Tempo Reale">
+          </button>
         </div>
-        <!-- Right side: ψ close button + instance badge -->
+        <!-- Settings tabs — same style as algorithm tabs in main panel -->
+        <nav class="tab-bar settings-tabs-bar" id="settings-tabs" role="tablist">
+          <button class="tab active" data-settings="rig"      role="tab">Rig</button>
+          <button class="tab"        data-settings="audio"    role="tab">Audio</button>
+          <button class="tab"        data-settings="generali" role="tab">Generali</button>
+        </nav>
+        <!-- Right side: spat selector (mirrors main panel) + ψ close button + instance badge -->
         <div class="header-right">
+          <div class="spat-select" id="spat-select-2">
+            <button class="spat-btn mono" id="spat-btn-2">VBAP</button>
+            <div class="spat-menu" id="spat-menu-2" hidden>
+              <button class="spat-choice active" data-spat="vbap">VBAP</button>
+              <button class="spat-choice" data-spat="dbap">DBAP</button>
+              <button class="spat-choice" data-spat="ambisonics">Ambi3rd</button>
+              <button class="spat-choice" data-spat="ambisonics">Ambi7th</button>
+              <button class="spat-choice" data-spat="soundscape">Direct</button>
+            </div>
+          </div>
           <button class="logo-btn active-logo" id="logo-btn-2" title="Chiudi (ESC)"><svg class="logo-ico" viewBox="0 0 18 18" aria-hidden="true"><line x1="2.5" y1="5" x2="15.5" y2="5" stroke="currentColor" stroke-width="1.4"/><line x1="2.5" y1="9" x2="15.5" y2="9" stroke="currentColor" stroke-width="1.4"/><line x1="2.5" y1="13" x2="15.5" y2="13" stroke="currentColor" stroke-width="1.4"/><circle cx="11" cy="5" r="2" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/><circle cx="6" cy="9" r="2" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="13" r="2" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/></svg></button>
           <span class="instance-badge mono">#1</span>
         </div>
       </header>
-
-      <!-- Settings tabs — same style as algorithm tabs in main panel -->
-      <nav class="tab-bar params-tab-bar" id="settings-tabs" role="tablist">
-        <button class="tab active" data-settings="audio"    role="tab">Audio</button>
-        <button class="tab"        data-settings="rig"      role="tab">Rig</button>
-        <button class="tab"        data-settings="generali" role="tab">Generali</button>
-      </nav>
 
       <div class="panel-body">
         <div class="settings-body" id="settings-body">
           <!-- populated by app.js -->
         </div>
       </div>
+
+      <!-- Global / stray toggle: scoped to the active settings tab, bottom-right -->
+      <footer class="settings-footer">
+        <div class="gs-toggle" id="gs-toggle">
+          <button class="gs-btn active" data-gs="global">global</button>
+          <button class="gs-btn"        data-gs="stray">stray</button>
+        </div>
+      </footer>
 
     </div><!-- /secondary-panel -->
 
@@ -304,6 +322,7 @@
 
   <script src="js/circle.js"></script>
   <script src="js/modules.js"></script>
+  <script src="js/rig.js"></script>
   <script src="js/arcs.js"></script>
   <script src="js/app.js"></script>
 </body>

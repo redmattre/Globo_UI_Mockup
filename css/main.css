@@ -280,5 +280,14 @@ ul { list-style: none; }
   min-width: 0;
 }
 
+.settings-footer {
+  flex: 0 0 var(--footer-h);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--pad-x);
+  border-top: 1px solid var(--border);
+  background: var(--white);
+}
+
 /* ── UTILITY ────────────────────────────────────────────────────────────────── */
 .mono { font-family: var(--font-mono); }

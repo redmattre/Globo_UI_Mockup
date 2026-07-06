@@ -9,7 +9,7 @@
   /* ── App state ─────────────────────────────────────────────────────────── */
   const state = {
     currentModule:   'perimetro',
-    currentSettings: 'audio',
+    currentSettings: 'rig',
     secondaryOpen:   false,
     instanceNumber:  1,
     slaveGroup:      2,     // 0 = standalone; N = N diagonal lines shown
@@ -114,154 +114,92 @@
   }
 
   /* ── Audio tab ─────────────────────────────────────────────────────────── */
-  function renderAudio() {
-    const types = ['DBAP', 'VBAP', 'Ambisonics', 'Soundscape'];
-    return `
-      <div class="settings-left">
-        <div class="settings-section-title">Parametri</div>
-        <div class="param-row">
-          <span class="param-name">Gain</span>
-          <input type="range" class="param-slider" id="au-gain" min="0" max="100" value="80" data-unit="">
-          <span class="param-value mono" id="au-gain-val">80</span>
-        </div>
-        <div class="param-row">
-          <span class="param-name">Distance</span>
-          <input type="range" class="param-slider" id="au-dist" min="0" max="100" value="50" data-unit="">
-          <span class="param-value mono" id="au-dist-val">50</span>
-        </div>
-        <div class="param-row">
-          <span class="param-name">Blur</span>
-          <input type="range" class="param-slider" id="au-blur" min="0" max="100" value="20" data-unit="">
-          <span class="param-value mono" id="au-blur-val">20</span>
-        </div>
-        <div class="param-row">
-          <span class="param-name">Doppler</span>
-          <input type="range" class="param-slider" id="au-doppler" min="0" max="100" value="0" data-unit="%">
-          <span class="param-value mono" id="au-doppler-val">0%</span>
-        </div>
-      </div>
-      <div class="settings-right">
-        <div class="settings-section-title">Tipologia</div>
-        <ul class="spat-list">
-          ${types.map((t, i) =>
-            `<li class="spat-item${i === 0 ? ' active' : ''}" data-spat="${t.toLowerCase()}">${t}</li>`
-          ).join('')}
-        </ul>
-      </div>`;
-  }
-
-  /* ── Rig tab ───────────────────────────────────────────────────────────── */
-  const SPEAKERS = [
-    { id: 1,  name: 'FL',  az: '0°',   el: '0°'  },
-    { id: 2,  name: 'FRC', az: '45°',  el: '0°'  },
-    { id: 3,  name: 'FR',  az: '90°',  el: '0°'  },
-    { id: 4,  name: 'BRC', az: '135°', el: '0°'  },
-    { id: 5,  name: 'BR',  az: '180°', el: '0°'  },
-    { id: 6,  name: 'BLC', az: '225°', el: '0°'  },
-    { id: 7,  name: 'BL',  az: '270°', el: '0°'  },
-    { id: 8,  name: 'FLC', az: '315°', el: '0°'  },
-    { id: 9,  name: 'HL',  az: '0°',   el: '45°' },
-    { id: 10, name: 'HR',  az: '90°',  el: '45°' },
-    { id: 11, name: 'HL2', az: '180°', el: '45°' },
-    { id: 12, name: 'TOP', az: '0°',   el: '90°' },
+  const AUDIO_TYPES = [
+    { key: 'dbap',       label: 'DBAP' },
+    { key: 'vbap',       label: 'VBAP' },
+    { key: 'ambisonics', label: 'Ambisonics' },
+    { key: 'soundscape', label: 'Soundscape' },
   ];
 
-  function renderRig() {
-    const speakerRows = SPEAKERS.map(s => `
-      <li class="speaker-item">
-        <input type="checkbox" checked>
-        <span class="speaker-num mono">${String(s.id).padStart(2, '0')}</span>
-        <span class="speaker-name">${s.name}</span>
-        <span class="speaker-pos mono">${s.az} / ${s.el}</span>
-      </li>`).join('');
+  // Mockup parameters — distinct per algorithm, purely visual (no real DSP behind them)
+  const AUDIO_PARAMS = {
+    dbap: [
+      { id: 'au-rolloff', name: 'Rolloff', min: 0, max: 100, val: 60, unit: '%' },
+      { id: 'au-blur',    name: 'Blur',    min: 0, max: 100, val: 20, unit: '%' },
+      { id: 'au-weight',  name: 'Weight',  min: 0, max: 100, val: 50, unit: '%' },
+    ],
+    vbap: [
+      { id: 'au-spread', name: 'Spread', min: 0, max: 100, val: 30, unit: '%' },
+      { id: 'au-focus',  name: 'Focus',  min: 0, max: 100, val: 70, unit: '%' },
+      { id: 'au-fade',   name: 'Fade',   min: 0, max: 100, val: 40, unit: '%' },
+    ],
+    ambisonics: [
+      { id: 'au-order',       name: 'Order',       min: 1, max: 7,   val: 3,  unit: '' },
+      { id: 'au-width',       name: 'Width',       min: 0, max: 100, val: 80, unit: '%' },
+      { id: 'au-directivity', name: 'Directivity', min: 0, max: 100, val: 50, unit: '%' },
+    ],
+    soundscape: [
+      { id: 'au-gain',    name: 'Gain',     min: 0, max: 100, val: 80, unit: '' },
+      { id: 'au-doppler', name: 'Doppler',  min: 0, max: 100, val: 0,  unit: '%' },
+      { id: 'au-air',     name: 'Air Abs.', min: 0, max: 100, val: 20, unit: '%' },
+    ],
+  };
 
+  function currentSpatKey() {
+    const active = document.querySelector('#spat-menu .spat-choice.active');
+    return (active && AUDIO_PARAMS[active.dataset.spat]) ? active.dataset.spat : 'vbap';
+  }
+
+  function renderAudioParams(key) {
+    return (AUDIO_PARAMS[key] || []).map(p => `
+      <div class="param-row">
+        <span class="param-name">${p.name}</span>
+        <input type="range" class="param-slider" id="${p.id}" min="${p.min}" max="${p.max}" value="${p.val}" data-unit="${p.unit}">
+        <span class="param-value mono" id="${p.id}-val">${p.val}${p.unit}</span>
+      </div>`).join('');
+  }
+
+  function renderAudio() {
+    const active = currentSpatKey();
     return `
-      <div class="settings-left">
-        <div class="settings-section-title">Visualizzazione Rig</div>
-        <div class="rig-viz">
-          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"
-               style="width:100%; aspect-ratio:1; display:block;">
-            ${buildRigSVG()}
-          </svg>
-        </div>
+      <div class="settings-left audio-left">
+        <ul class="spat-list">
+          ${AUDIO_TYPES.map(t =>
+            `<li class="spat-item${t.key === active ? ' active' : ''}" data-spat="${t.key}">${t.label}</li>`
+          ).join('')}
+        </ul>
       </div>
-      <div class="settings-right">
-        <div class="settings-section-title">Altoparlanti</div>
-        <ul class="speaker-list">${speakerRows}</ul>
+      <div class="settings-right audio-right">
+        <div id="audio-params">${renderAudioParams(active)}</div>
       </div>`;
   }
 
-  function buildRigSVG() {
-    const CX = 100, CY = 100, R = 75;
-    let s = '';
-    // Abstract sphere ellipses
-    s += `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#1A1917" stroke-width="1"/>`;
-    s += `<ellipse cx="${CX}" cy="${CY}" rx="${R}" ry="${R*0.3}" fill="none" stroke="#D3D1CC" stroke-width="0.5" stroke-dasharray="3 2"/>`;
-    s += `<ellipse cx="${CX}" cy="${CY}" rx="${R*0.3}" ry="${R}" fill="none" stroke="#D3D1CC" stroke-width="0.5" stroke-dasharray="3 2"/>`;
-    // Center
-    s += `<circle cx="${CX}" cy="${CY}" r="2.5" fill="#C8C5C0"/>`;
-
-    // Ring speakers (el = 0°)
-    const ring = SPEAKERS.filter(sp => sp.el === '0°');
-    ring.forEach(sp => {
-      const az  = parseFloat(sp.az);
-      const rad = az * Math.PI / 180;
-      const x   = CX + R * Math.sin(rad);
-      const y   = CY - R * Math.cos(rad);
-      s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"
-                    fill="#fff" stroke="#2B4C9B" stroke-width="1.5"/>`;
-      const lx = CX + (R + 12) * Math.sin(rad);
-      const ly = CY - (R + 12) * Math.cos(rad);
-      s += `<text x="${lx.toFixed(1)}" y="${(ly + 3).toFixed(1)}"
-                  font-size="7" fill="#56534E"
-                  text-anchor="middle" font-family="Arial">${sp.name}</text>`;
-    });
-
-    // Elevated speakers (el = 45°)
-    const elev = SPEAKERS.filter(sp => sp.el === '45°');
-    elev.forEach(sp => {
-      const az  = parseFloat(sp.az);
-      const rad = az * Math.PI / 180;
-      const re  = R * 0.55;
-      const x   = CX + re * Math.sin(rad);
-      const y   = CY - re * Math.cos(rad);
-      s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5"
-                    fill="#E7ECF7" stroke="#2B4C9B" stroke-width="1.2" stroke-dasharray="2.5 1.5"/>`;
-    });
-
-    // Top speaker
-    s += `<circle cx="${CX}" cy="${CY}" r="5"
-                  fill="#E7ECF7" stroke="#2B4C9B" stroke-width="1.2"/>`;
-    s += `<text x="${CX}" y="${CY + 3}" font-size="6" fill="#2B4C9B"
-                text-anchor="middle" font-family="Arial">T</text>`;
-
-    return s;
+  /* ── Rig tab (roster, position editor, subsets — implemented in rig.js) ─── */
+  function renderRig() {
+    return window.RigAPI ? window.RigAPI.render() : '';
   }
 
   /* ── Generali tab ──────────────────────────────────────────────────────── */
+  // Rows mirror the Rig speaker roster (each speaker needs a physical output);
+  // one output column per speaker, diagonal-routed by default.
   function renderGenerali() {
-    const channels = ['1','2','3','4','5','6','7','8'];
-    const buses    = ['A','B','C','D'];
+    const speakers = window.RigAPI ? window.RigAPI.getSpeakers() : [];
+    const outputs  = speakers.map((_, i) => i + 1);
 
-    let matrixHTML = `<div class="matrix-grid">`;
-    // Header row
-    matrixHTML += `<div class="matrix-header"><span class="matrix-lbl"></span>`;
-    buses.forEach(b => { matrixHTML += `<span class="matrix-lbl mono">${b}</span>`; });
-    matrixHTML += `</div>`;
-    // Data rows
-    channels.forEach((ch, ci) => {
-      matrixHTML += `<div class="matrix-row"><span class="matrix-lbl mono">${ch}</span>`;
-      buses.forEach((b, bi) => {
-        const active = (ci === bi) ? ' active' : '';
-        matrixHTML += `<button class="matrix-cell${active}" data-ch="${ch}" data-bus="${b}"></button>`;
-      });
-      matrixHTML += `</div>`;
-    });
-    matrixHTML += `</div>`;
+    const headerCells = outputs.map(o => `<span class="matrix-lbl mono" data-bus="${o}">${o}</span>`).join('');
+    const rows = speakers.map((sp, ri) => {
+      const cells = outputs.map((o, oi) =>
+        `<button class="matrix-cell${ri === oi ? ' active' : ''}" data-ch="${sp.id}" data-bus="${o}"></button>`
+      ).join('');
+      return `
+        <div class="matrix-row">
+          <span class="matrix-lbl matrix-row-lbl mono" data-ch="${sp.id}">${sp.name}</span>
+          ${cells}
+        </div>`;
+    }).join('');
 
     return `
-      <div class="settings-left">
-        <div class="settings-section-title">Leggi Generali</div>
+      <div class="settings-left generali-left">
         <div class="param-row">
           <span class="param-name">Doppler</span>
           <input type="range" class="param-slider" id="g-doppler" min="0" max="100" value="0" data-unit="">
@@ -283,26 +221,33 @@
           <span class="param-value mono" id="g-clip-val">10</span>
         </div>
       </div>
-      <div class="settings-right">
-        <div class="settings-section-title">Matrice di Uscita</div>
-        ${matrixHTML}
+      <div class="settings-right generali-right">
+        <div class="matrix-scroll">
+          <div class="matrix-grid" id="generali-matrix">
+            <div class="matrix-header"><span class="matrix-lbl matrix-corner"></span>${headerCells}</div>
+            ${rows}
+          </div>
+        </div>
       </div>`;
   }
 
   /* ── Bind settings events (sliders, spat list, matrix) ─────────────────── */
-  function bindSettingsEvents(tab) {
-    const body = document.getElementById('settings-body');
-    if (!body) return;
-
-    // Sliders
-    body.querySelectorAll('input[type="range"]').forEach(slider => {
+  function bindRangeSliders(container) {
+    container.querySelectorAll('input[type="range"]').forEach(slider => {
       const valEl = document.getElementById(slider.id + '-val');
       if (!valEl) return;
       const unit = slider.dataset.unit || '';
       slider.addEventListener('input', () => { valEl.textContent = slider.value + unit; });
     });
+  }
 
-    // Spat list (Audio tab)
+  function bindSettingsEvents(tab) {
+    const body = document.getElementById('settings-body');
+    if (!body) return;
+
+    bindRangeSliders(body);
+
+    // Spat list (Audio tab) — each type shows its own mockup parameters
     if (tab === 'audio') {
       body.querySelectorAll('.spat-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -310,25 +255,40 @@
           item.classList.add('active');
           // Mirror to main panel dropdown
           setSpatChoice(item.dataset.spat);
+          const paramsEl = document.getElementById('audio-params');
+          if (paramsEl) {
+            paramsEl.innerHTML = renderAudioParams(item.dataset.spat);
+            bindRangeSliders(paramsEl);
+          }
         });
       });
     }
 
-    // Output matrix toggle (Generali tab)
+    // Output matrix (Generali tab) — click to toggle a routing, hover to
+    // highlight the row/column so it's easier to read across a bigger grid
     if (tab === 'generali') {
       body.querySelectorAll('.matrix-cell').forEach(cell => {
         cell.addEventListener('click', () => cell.classList.toggle('active'));
       });
+      const grid = document.getElementById('generali-matrix');
+      if (grid) {
+        grid.addEventListener('mouseover', e => {
+          const cell = e.target.closest('.matrix-cell');
+          if (!cell) return;
+          const ch = cell.dataset.ch, bus = cell.dataset.bus;
+          grid.querySelectorAll('.matrix-cell, .matrix-lbl').forEach(el => {
+            el.classList.toggle('row-hover', el.dataset.ch === ch);
+            el.classList.toggle('col-hover', el.dataset.bus === bus);
+          });
+        });
+        grid.addEventListener('mouseleave', () => {
+          grid.querySelectorAll('.row-hover, .col-hover').forEach(el => el.classList.remove('row-hover', 'col-hover'));
+        });
+      }
     }
 
-    // Rig checkbox select-all hint (Rig tab)
-    if (tab === 'rig') {
-      body.querySelectorAll('.speaker-item input[type="checkbox"]').forEach(cb => {
-        cb.addEventListener('change', () => {
-          // Could update rig SVG visibility — placeholder
-        });
-      });
-    }
+    // Rig tab: roster, position editor, subsets (own module — see rig.js)
+    if (tab === 'rig' && window.RigAPI) window.RigAPI.bind();
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -561,10 +521,9 @@
      BRAND CREDITS  (click the logo to show dev/build info)
   ════════════════════════════════════════════════════════════════════════ */
   function initBrandMenu() {
-    const btn      = document.getElementById('brand-btn');
     const menu     = document.getElementById('brand-menu');
     const backdrop = document.getElementById('brand-backdrop');
-    if (!btn || !menu || !backdrop) return;
+    if (!menu || !backdrop) return;
 
     function close() {
       menu.classList.remove('open');
@@ -575,9 +534,13 @@
       backdrop.classList.add('open');
     }
 
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      menu.classList.contains('open') ? close() : open();
+    // Both the main panel and the settings panel have their own trigger
+    // button (same brand, same credits modal — one shared #brand-menu).
+    document.querySelectorAll('.brand-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.contains('open') ? close() : open();
+      });
     });
     backdrop.addEventListener('click', close);
     document.addEventListener('keydown', (e) => {
@@ -590,45 +553,51 @@
      button — not an OS-native <select>)
   ════════════════════════════════════════════════════════════════════════ */
   function setSpatChoice(key) {
-    const menu = document.getElementById('spat-menu');
-    const btn  = document.getElementById('spat-btn');
-    if (!menu || !btn) return;
-    const choice = menu.querySelector('.spat-choice[data-spat="' + key + '"]');
-    if (!choice) return;
-    menu.querySelectorAll('.spat-choice').forEach(c => c.classList.remove('active'));
-    choice.classList.add('active');
-    btn.textContent = choice.textContent;
+    // The main panel and the settings panel each have their own spat-select
+    // instance — both mirror the same global choice, so update them together.
+    document.querySelectorAll('.spat-select').forEach(sel => {
+      const menu = sel.querySelector('.spat-menu');
+      const btn  = sel.querySelector('.spat-btn');
+      if (!menu || !btn) return;
+      const choice = menu.querySelector('.spat-choice[data-spat="' + key + '"]');
+      if (!choice) return;
+      menu.querySelectorAll('.spat-choice').forEach(c => c.classList.remove('active'));
+      choice.classList.add('active');
+      btn.textContent = choice.textContent;
+    });
   }
 
   function initSpatSelect() {
-    const btn  = document.getElementById('spat-btn');
-    const menu = document.getElementById('spat-menu');
-    if (!btn || !menu) return;
+    document.querySelectorAll('.spat-select').forEach(sel => {
+      const btn  = sel.querySelector('.spat-btn');
+      const menu = sel.querySelector('.spat-menu');
+      if (!btn || !menu) return;
 
-    function close() {
-      menu.hidden = true;
-      btn.classList.remove('open');
-    }
-    function open() {
-      menu.hidden = false;
-      btn.classList.add('open');
-    }
+      function close() {
+        menu.hidden = true;
+        btn.classList.remove('open');
+      }
+      function open() {
+        menu.hidden = false;
+        btn.classList.add('open');
+      }
 
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      menu.hidden ? open() : close();
-    });
-    menu.querySelectorAll('.spat-choice').forEach(choice => {
-      choice.addEventListener('click', () => {
-        setSpatChoice(choice.dataset.spat);
-        close();
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.hidden ? open() : close();
       });
-    });
-    document.addEventListener('click', (e) => {
-      if (!menu.hidden && !e.target.closest('#spat-select')) close();
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !menu.hidden) close();
+      menu.querySelectorAll('.spat-choice').forEach(choice => {
+        choice.addEventListener('click', () => {
+          setSpatChoice(choice.dataset.spat);
+          close();
+        });
+      });
+      document.addEventListener('click', (e) => {
+        if (!menu.hidden && !sel.contains(e.target)) close();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !menu.hidden) close();
+      });
     });
   }
 
