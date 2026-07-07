@@ -90,9 +90,11 @@
               </button>
               <div class="height-track">
                 <span class="height-lbl top mono">90°</span>
-                <input type="range" id="height-slider"
-                       class="vertical-slider"
-                       min="0" max="90" value="0" step="1">
+                <div class="height-range" id="height-range">
+                  <div class="height-fill" id="height-fill"></div>
+                  <div class="height-thumb" id="height-thumb-max" title="Elevazione massima"></div>
+                  <div class="height-thumb" id="height-thumb-min" title="Elevazione minima"></div>
+                </div>
                 <span class="height-lbl bot mono">0°</span>
               </div>
               <span class="height-val mono" id="height-val">0°</span>

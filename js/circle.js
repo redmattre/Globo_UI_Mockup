@@ -22,14 +22,14 @@
   /* ── State ──────────────────────────────────────────────────────────────── */
   window.CircleState = {
     arcs: [
-      { active: true,  created: true,  left: 0, right:  359.9, height: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left:  60, right: 105, height: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 105, right: 150, height: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 150, right: 195, height: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 195, right: 240, height: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 240, right: 285, height: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 285, right: 315, height: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 315, right: 330, height: 0, heightMode: 'hemisphere' },
+      { active: true,  created: true,  left: 0, right:  359.9, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left:  60, right: 105, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 105, right: 150, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 150, right: 195, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 195, right: 240, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 240, right: 285, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 285, right: 315, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { active: false, created: false, left: 315, right: 330, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
     ],
     selected:  0,    // last interacted arc (height slider / patterns)
     hovered:  -1,    // arc index the mouse is over right now (-1 = none)
@@ -438,7 +438,8 @@
 
     arc.left       = norm(center - half);
     arc.right      = norm(center + half);
-    arc.height     = 0;
+    arc.heightMin  = 0;
+    arc.heightMax  = 0;
     arc.heightMode = 'hemisphere';
     arc.active     = true;
     arc.created    = true;

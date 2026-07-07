@@ -327,23 +327,38 @@
 .height-val {
   font-size: var(--sz-xs);
   color: var(--accent);
-  min-width: 28px;
+  width: 46px;
+  flex-shrink: 0;
+  overflow: hidden;
   text-align: center;
   line-height: 1;
 }
 
-/* ── VERTICAL SLIDER (height) ───────────────────────────────────────────────── */
-.vertical-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  writing-mode: vertical-lr;
-  direction: rtl;
+/* ── HEIGHT RANGE (dual-handle vertical slider, elevation min/max) ───────────── */
+.height-range {
+  position: relative;
   flex: 1;
-  width: 16px;
+  width: 2px;
   min-height: 60px;
-  background: transparent;
-  cursor: pointer;
+  background: var(--border-strong);
 }
+.height-fill {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  background: var(--thumb-color, var(--ink));
+}
+.height-thumb {
+  position: absolute;
+  left: 50%;
+  width: 15px;
+  height: 4px;
+  background: var(--thumb-color, var(--ink));
+  transform: translate(-50%, -50%);
+  cursor: ns-resize;
+  transition: background 0.1s;
+}
+.height-thumb:hover { background: #000; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    CUSTOM RANGE SLIDERS  —  architectural fader (thin track + black tick thumb)
@@ -369,21 +384,6 @@
 .param-slider:hover::-moz-range-thumb,
 .rh-force-slider:hover::-moz-range-thumb { background: #000; }
 .param-slider:focus, .rh-force-slider:focus { outline: none; }
-
-/* Vertical (height) track + thumb */
-.vertical-slider::-webkit-slider-runnable-track { width: 2px; background: var(--border-strong); border-radius: 0; }
-.vertical-slider::-moz-range-track { width: 2px; background: var(--border-strong); border-radius: 0; }
-.vertical-slider::-webkit-slider-thumb {
-  -webkit-appearance: none; appearance: none;
-  width: 15px; height: 4px; margin-left: -6.5px;
-  background: var(--thumb-color, var(--ink)); border: none; border-radius: 0;
-  transition: background 0.1s;
-}
-.vertical-slider::-moz-range-thumb {
-  width: 15px; height: 4px; background: var(--thumb-color, var(--ink)); border: none; border-radius: 0;
-}
-.vertical-slider:hover::-webkit-slider-thumb { background: var(--thumb-color, #000); }
-.vertical-slider:focus { outline: none; }
 
 /* ── READHEAD BAR ───────────────────────────────────────────────────────────── */
 .rh-angle {

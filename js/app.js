@@ -429,24 +429,98 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
-     HEIGHT SLIDER
+     HEIGHT RANGE  (dual-handle vertical slider next to the circle — the
+     currently selected arc's elevation MIN/MAX, same drag pattern as the
+     unified speed range in the footer, just vertical.)
   ════════════════════════════════════════════════════════════════════════ */
   function initHeightSlider() {
-    const slider = document.getElementById('height-slider');
-    const valEl  = document.getElementById('height-val');
-    if (!slider || !valEl) return;
+    const track      = document.getElementById('height-range');
+    const fill       = document.getElementById('height-fill');
+    const thumbMin   = document.getElementById('height-thumb-min');
+    const thumbMax   = document.getElementById('height-thumb-max');
+    const valEl      = document.getElementById('height-val');
+    const lblBot     = document.querySelector('.height-lbl.bot');
+    const modeToggle = document.getElementById('height-mode-toggle');
+    if (!track || !fill || !thumbMin || !thumbMax || !valEl) return;
 
-    slider.addEventListener('input', () => {
-      const val = parseInt(slider.value, 10);
-      valEl.textContent = val + '°';
-      // Save to the currently selected arc
-      if (window.CircleState && window.CircleState.arcs) {
-        window.CircleState.arcs[window.CircleState.selected].height = val;
+    let dragging = null; // 'min' | 'max' | null
+
+    function bounds() {
+      const mode = modeToggle ? modeToggle.dataset.mode : 'hemisphere';
+      return mode === 'sphere' ? { min: -90, max: 90 } : { min: 0, max: 90 };
+    }
+    function pctFromAngle(angle) {
+      const b = bounds();
+      return ((b.max - angle) / (b.max - b.min)) * 100;
+    }
+    function angleFromPct(pct) {
+      const b = bounds();
+      return b.max - (pct / 100) * (b.max - b.min);
+    }
+    function currentArc() {
+      return (window.CircleState && window.CircleState.arcs)
+        ? window.CircleState.arcs[window.CircleState.selected]
+        : null;
+    }
+
+    function render() {
+      const arc = currentArc();
+      if (!arc) return;
+      const pMin = pctFromAngle(arc.heightMin);
+      const pMax = pctFromAngle(arc.heightMax);
+      const top  = Math.min(pMin, pMax), bottom = Math.max(pMin, pMax);
+      thumbMin.style.top = pMin + '%';
+      thumbMax.style.top = pMax + '%';
+      fill.style.top     = top + '%';
+      fill.style.height  = (bottom - top) + '%';
+      valEl.textContent  = arc.heightMin === arc.heightMax
+        ? arc.heightMin + '°'
+        : arc.heightMin + '°/' + arc.heightMax + '°';
+    }
+
+    function angleFromEvent(e) {
+      const rect = track.getBoundingClientRect();
+      const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
+      return Math.round(angleFromPct((y / rect.height) * 100));
+    }
+
+    function moveTo(angle) {
+      const arc = currentArc();
+      if (!arc) return;
+      const b = bounds();
+      angle = Math.max(b.min, Math.min(b.max, angle));
+      // No hard clamp against the other handle — that's what caused the
+      // freeze (min could never pass a max stuck at 0 in hemisphere mode).
+      // Instead let the dragged handle cross over: whichever value ends up
+      // smaller becomes the min, larger becomes the max, and the handle
+      // being dragged keeps following the cursor under its new label.
+      if (dragging === 'min') {
+        if (angle <= arc.heightMax) { arc.heightMin = angle; }
+        else { arc.heightMin = arc.heightMax; arc.heightMax = angle; dragging = 'max'; }
+      } else if (dragging === 'max') {
+        if (angle >= arc.heightMin) { arc.heightMax = angle; }
+        else { arc.heightMax = arc.heightMin; arc.heightMin = angle; dragging = 'min'; }
       }
-      if (window.ArcsAPI) window.ArcsAPI.autosave();
+      render();
+    }
+
+    thumbMin.addEventListener('mousedown', e => { dragging = 'min'; e.preventDefault(); e.stopPropagation(); });
+    thumbMax.addEventListener('mousedown', e => { dragging = 'max'; e.preventDefault(); e.stopPropagation(); });
+    track.addEventListener('mousedown', e => {
+      if (e.target === thumbMin || e.target === thumbMax) return;
+      const arc = currentArc();
+      if (!arc) return;
+      const angle = angleFromEvent(e);
+      dragging = (Math.abs(angle - arc.heightMin) <= Math.abs(angle - arc.heightMax)) ? 'min' : 'max';
+      moveTo(angle);
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => { if (dragging) moveTo(angleFromEvent(e)); });
+    window.addEventListener('mouseup', () => {
+      if (dragging && window.ArcsAPI) window.ArcsAPI.autosave();
+      dragging = null;
     });
 
-    const modeToggle = document.getElementById('height-mode-toggle');
     if (modeToggle) {
       modeToggle.addEventListener('click', () => {
         const mode = modeToggle.dataset.mode === 'sphere' ? 'hemisphere' : 'sphere';
@@ -454,24 +528,45 @@
         modeToggle.title = mode === 'sphere'
           ? 'Sfera (clic: semisfera)'
           : 'Semisfera (clic: sfera)';
-        // Save mode to the currently selected arc
-        if (window.CircleState && window.CircleState.arcs) {
-          window.CircleState.arcs[window.CircleState.selected].heightMode = mode;
+        const arc = currentArc();
+        if (arc) {
+          arc.heightMode = mode;
+          // Hemisphere has no below-horizon range — clamp back into [0, 90]
+          if (mode === 'hemisphere') {
+            arc.heightMin = Math.max(0, arc.heightMin);
+            arc.heightMax = Math.max(0, arc.heightMax);
+          }
         }
-        if (mode === 'sphere') {
-          slider.min = '-90';
-          valEl.textContent = slider.value + '°';
-        } else {
-          slider.min = '0';
-          if (parseInt(slider.value, 10) < 0) { slider.value = '0'; }
-          valEl.textContent = slider.value + '°';
-        }
+        if (lblBot) lblBot.textContent = mode === 'sphere' ? '−90°' : '0°';
         if (window.ArcsAPI) {
           window.ArcsAPI.autosave();
           window.ArcsAPI.syncHeightSlider(window.CircleState.selected);
         }
       });
     }
+
+    render();
+
+    window.HeightRangeAPI = {
+      /** Refresh the control to reflect arc `idx` — its color, mode, values. */
+      sync(idx) {
+        const arc = (window.CircleState && window.CircleState.arcs) ? window.CircleState.arcs[idx] : null;
+        if (!arc) return;
+        if (modeToggle) {
+          modeToggle.dataset.mode = arc.heightMode;
+          modeToggle.title = arc.heightMode === 'sphere'
+            ? 'Sfera (clic: semisfera)'
+            : 'Semisfera (clic: sfera)';
+        }
+        if (lblBot) lblBot.textContent = arc.heightMode === 'sphere' ? '−90°' : '0°';
+        const color = window.ARC_COLORS ? window.ARC_COLORS[idx] : null;
+        if (color) {
+          track.style.setProperty('--thumb-color', color); // inherited by fill + thumbs
+          valEl.style.color = color;                        // sibling of track, needs it directly
+        }
+        render();
+      },
+    };
   }
 
   /* ═══════════════════════════════════════════════════════════════════════

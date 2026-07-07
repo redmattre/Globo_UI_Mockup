@@ -145,37 +145,11 @@
     applyReadhead(rpos);
   }
 
-  /* ── Height slider sync ─────────────────────────────────────────────────── */
+  /* ── Height range slider sync ──────────────────────────────────────────────
+     The dual-handle height control itself lives in app.js (HeightRangeAPI),
+     same split as the speed range — arcs.js only owns the arc data. */
   function syncHeightSlider(idx) {
-    if (!window.CircleState || !window.ARC_COLORS) return;
-    var arc   = window.CircleState.arcs[idx];
-    var color = window.ARC_COLORS[idx];
-    if (!arc) return;
-
-    var slider = document.getElementById('height-slider');
-    var valEl  = document.getElementById('height-val');
-    var lblTop = document.querySelector('.height-lbl.top');
-    var lblBot = document.querySelector('.height-lbl.bot');
-
-    if (slider) {
-      slider.value = arc.height;
-      slider.style.setProperty('--thumb-color', color);
-      slider.min = arc.heightMode === 'sphere' ? '-90' : '0';
-    }
-    if (valEl)  { valEl.textContent = arc.height + '°'; valEl.style.color = color; }
-    if (lblTop) { lblTop.textContent = '90°'; }
-    if (lblBot) { lblBot.textContent = arc.heightMode === 'sphere' ? '−90°' : '0°'; }
-
-    document.querySelectorAll('.mode-btn').forEach(function (btn) {
-      btn.classList.toggle('active', btn.dataset.mode === arc.heightMode);
-    });
-    var modeToggle = document.getElementById('height-mode-toggle');
-    if (modeToggle) {
-      modeToggle.dataset.mode = arc.heightMode;
-      modeToggle.title = arc.heightMode === 'sphere'
-        ? 'Sfera (clic: semisfera)'
-        : 'Semisfera (clic: sfera)';
-    }
+    if (window.HeightRangeAPI) window.HeightRangeAPI.sync(idx);
   }
 
   /* ── Pattern slider (16 slots, drag to morph) ──────────────────────────── */
@@ -198,7 +172,8 @@
         created:    t < 0.5 ? arcA.created    : arcB.created,
         left:       lerpAngle(arcA.left,  arcB.left,  t),
         right:      lerpAngle(arcA.right, arcB.right, t),
-        height:     arcA.height + (arcB.height - arcA.height) * t,
+        heightMin:  arcA.heightMin + (arcB.heightMin - arcA.heightMin) * t,
+        heightMax:  arcA.heightMax + (arcB.heightMax - arcA.heightMax) * t,
         heightMode: t < 0.5 ? arcA.heightMode : arcB.heightMode,
       };
     });
