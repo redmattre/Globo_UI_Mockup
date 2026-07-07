@@ -11,14 +11,17 @@
             "id": "1a1d4e0c4f3681d8",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "canvas",
               "state": {
-                "file": "Riunione 1.md",
-                "mode": "source",
-                "source": false
+                "file": "Architettura_draft.canvas",
+                "viewState": {
+                  "x": 182.15668922645193,
+                  "y": 70.95137148185991,
+                  "zoom": -0.6929829120635987
+                }
               },
-              "icon": "lucide-file",
-              "title": "Riunione 1"
+              "icon": "lucide-layout-dashboard",
+              "title": "Architettura_draft"
             }
           }
         ]
@@ -94,7 +97,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Riunione 1.md",
+                "file": "Architettura_draft.canvas",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +107,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Riferimenti a Riunione 1"
+              "title": "Riferimenti a Architettura_draft"
             }
           },
           {
@@ -113,12 +116,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Riunione 1.md",
+                "file": "Architettura_draft.canvas",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Collegamenti in uscita da Riunione 1"
+              "title": "Collegamenti in uscita da Architettura_draft"
             }
           },
           {
@@ -156,13 +159,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Riunione 1.md",
+                "file": "Architettura_draft.canvas",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Struttura di Riunione 1"
+              "title": "Struttura di Architettura_draft"
             }
           }
         ]
@@ -183,8 +186,9 @@
       "bases:Crea nuova Base": false
     }
   },
-  "active": "1a1d4e0c4f3681d8",
+  "active": "fb7df48569fc1496",
   "lastOpenFiles": [
-    "Riunione 1.md"
+    "Riunione 1.md",
+    "Architettura_draft.canvas"
   ]
 }

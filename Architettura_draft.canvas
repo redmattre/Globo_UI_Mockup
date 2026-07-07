@@ -1,0 +1,28 @@
+{
+	"nodes":[
+		{"id":"d7640db5afdca71f","type":"text","text":"VST WRAP RNBO","x":-571,"y":-180,"width":131,"height":680,"color":"#ffffff"},
+		{"id":"43df1ae20502bb6a","type":"text","text":"Params","x":-135,"y":-280,"width":90,"height":60},
+		{"id":"264284db861b2c23","type":"text","text":"gen~ SPAT (VBAP, AMBI etc)","x":-440,"y":420,"width":249,"height":60},
+		{"id":"9746a324d9ac7e11","type":"text","text":"RNBO: Aleatorio","x":200,"y":60,"width":250,"height":60},
+		{"id":"1aa9ad7286b32773","type":"text","text":"HTML UI","x":-191,"y":-380,"width":250,"height":60,"color":"#ffffff"},
+		{"id":"71985bc393f6eeb4","type":"text","text":"[IN~ 1] [IN~2]","x":-385,"y":-160,"width":140,"height":60},
+		{"id":"a2023f19997927d2","type":"text","text":"Gen: Testina DOPPIA (sui due oggetti virtuali)","x":-95,"y":220,"width":275,"height":60},
+		{"id":"e4a93d3daae5a05a","type":"text","text":"RNBO: Perimetro","x":-82,"y":60,"width":250,"height":60},
+		{"id":"550e96ef90166477","type":"text","text":"Memoria","x":-191,"y":-160,"width":250,"height":60},
+		{"id":"15a3ff2eac83b22e","type":"text","text":"CONDIVISO","x":480,"y":-160,"width":250,"height":60,"color":"3"}
+	],
+	"edges":[
+		{"id":"a531bff728fc809e","fromNode":"1aa9ad7286b32773","fromSide":"bottom","toNode":"d7640db5afdca71f","toSide":"top"},
+		{"id":"ba1ef5f64b5a7c5b","fromNode":"71985bc393f6eeb4","fromSide":"bottom","toNode":"264284db861b2c23","toSide":"top"},
+		{"id":"232685df68000ad3","fromNode":"e4a93d3daae5a05a","fromSide":"bottom","toNode":"a2023f19997927d2","toSide":"top"},
+		{"id":"20043796cf7a0376","fromNode":"9746a324d9ac7e11","fromSide":"bottom","toNode":"a2023f19997927d2","toSide":"top"},
+		{"id":"bc1973bbd15df8c0","fromNode":"a2023f19997927d2","fromSide":"bottom","toNode":"264284db861b2c23","toSide":"top"},
+		{"id":"2d1e62df4ea50668","fromNode":"43df1ae20502bb6a","fromSide":"bottom","toNode":"550e96ef90166477","toSide":"top"},
+		{"id":"09426108f5521be2","fromNode":"43df1ae20502bb6a","fromSide":"bottom","toNode":"550e96ef90166477","toSide":"top"},
+		{"id":"3b243fb8ebd2e990","fromNode":"550e96ef90166477","fromSide":"bottom","toNode":"e4a93d3daae5a05a","toSide":"top"},
+		{"id":"3d0ec4c29d5d0942","fromNode":"550e96ef90166477","fromSide":"bottom","toNode":"9746a324d9ac7e11","toSide":"top"},
+		{"id":"033154d550c12f5d","fromNode":"550e96ef90166477","fromSide":"bottom","toNode":"264284db861b2c23","toSide":"top"},
+		{"id":"a5a31a8418119ba5","fromNode":"550e96ef90166477","fromSide":"right","toNode":"15a3ff2eac83b22e","toSide":"left"},
+		{"id":"0077436234103966","fromNode":"43df1ae20502bb6a","fromSide":"right","toNode":"15a3ff2eac83b22e","toSide":"left"}
+	]
+}

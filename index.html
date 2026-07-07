@@ -24,21 +24,15 @@
             <img class="brand-logo" src="media/Logo_TempoReale_white.webp" alt="Tempo Reale">
           </button>
         </div>
-        <!-- Pattern presets: 16-slot memory, buttons mode / slider mode -->
+        <!-- Pattern presets: 16-slot memory. Numbers = click to jump/create/
+             shift-click to delete. Track underneath = drag to morph between
+             existing presets. -->
         <div class="pattern-bar-wrap">
-          <div class="pattern-bar" id="pattern-bar" data-mode="buttons"></div>
+          <div class="pattern-bar" id="pattern-bar"></div>
+          <div class="pattern-morph-track" id="pattern-morph-track" title="Trascina per fare il morph tra i preset">
+            <div class="pattern-morph-thumb" id="pattern-thumb"></div>
+          </div>
         </div>
-        <button class="mode-toggle pattern-mode-toggle" id="pattern-mode-toggle" data-mode="buttons" title="Modalità a bottoni (clic: passa a slider)">
-          <svg class="ico ico-buttons" viewBox="0 0 18 18" aria-hidden="true">
-            <rect x="2.5" y="7" width="3.4" height="4" fill="none" stroke="currentColor" stroke-width="1.3"/>
-            <rect x="7.3" y="7" width="3.4" height="4" fill="none" stroke="currentColor" stroke-width="1.3"/>
-            <rect x="12.1" y="7" width="3.4" height="4" fill="none" stroke="currentColor" stroke-width="1.3"/>
-          </svg>
-          <svg class="ico ico-slider" viewBox="0 0 18 18" aria-hidden="true">
-            <line x1="2.5" y1="9" x2="15.5" y2="9" stroke="currentColor" stroke-width="1.3"/>
-            <rect x="7.3" y="6.3" width="3.4" height="5.4" fill="currentColor"/>
-          </svg>
-        </button>
         <!-- Right side: spat selector + ψ settings trigger + instance badge -->
         <div class="header-right">
           <div class="spat-select" id="spat-select">

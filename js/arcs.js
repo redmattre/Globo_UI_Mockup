@@ -248,7 +248,7 @@
       el.classList.toggle('morphing', !onActive && (isMorphLo || isMorphHi));
       el.title = filled
         ? 'Preset ' + (i + 1) + ' — clic: richiama · shift+clic: elimina'
-        : (patternMode === 'buttons' && i === count ? 'Preset ' + (i + 1) + ' — clic: salva qui' : '');
+        : (i === count ? 'Preset ' + (i + 1) + ' — clic: salva qui' : '');
     });
   }
 
@@ -307,28 +307,10 @@
     loadPreset(Math.min(Math.round(patternPos), count - 2));
   }
 
-  var patternMode = 'buttons'; // 'buttons' | 'slider'
-
-  function setPatternMode(mode) {
-    patternMode = mode;
-    var bar    = document.getElementById('pattern-bar');
-    var toggle = document.getElementById('pattern-mode-toggle');
-    if (bar) {
-      bar.dataset.mode = mode;
-      bar.style.cursor = mode === 'slider' ? 'ew-resize' : 'pointer';
-    }
-    if (toggle) {
-      toggle.dataset.mode = mode;
-      toggle.title = mode === 'buttons'
-        ? 'Modalità a bottoni (clic: passa a slider)'
-        : 'Modalità slider (clic: passa a bottoni)';
-    }
-    updatePatternSlider();
-  }
-
   function initPatterns() {
-    var bar = document.getElementById('pattern-bar');
-    if (!bar) return;
+    var bar   = document.getElementById('pattern-bar');
+    var track = document.getElementById('pattern-morph-track');
+    if (!bar || !track) return;
     bar.innerHTML = '';
 
     // Create 16 slot markers
@@ -340,20 +322,13 @@
       bar.appendChild(slot);
     }
 
-    // Draggable thumb (slider mode position indicator)
-    var thumb = document.createElement('div');
-    thumb.className = 'pthumb';
-    thumb.id = 'pattern-thumb';
-    bar.appendChild(thumb);
-
     // Seed slot 0
     patterns[0] = snapshotState();
     updatePatternSlider();
 
-    /* ── Buttons mode: click a slot to load it, click empty space to create
-       a new one at the frontier, shift-click a filled slot to delete it ── */
+    /* ── Numbers: click a slot to load it, click empty space to create a
+       new one at the frontier, shift-click a filled slot to delete it ── */
     bar.addEventListener('click', function (e) {
-      if (patternMode !== 'buttons') return;
       var slotEl = e.target.closest('.pslot');
       if (!slotEl) return;
       var idx   = parseInt(slotEl.dataset.slot, 10);
@@ -366,27 +341,19 @@
       else createPreset();
     });
 
-    /* ── Slider mode: drag to morph between existing presets only; the
-       range stops at the last filled slot. Shift-click still deletes. ── */
+    /* ── Morph track (the "underline" below the numbers): drag to blend
+       continuously between existing presets; the range stops at the last
+       filled slot, same as before. ── */
     var isDragging = false;
 
     function posFromEvent(e) {
-      var rect = bar.getBoundingClientRect();
+      var rect = track.getBoundingClientRect();
       var x = (e.clientX - rect.left) / rect.width;
       // Each slot occupies 1/16; slot i centre at (i+0.5)/16
       return Math.max(0, Math.min(15, x * 16 - 0.5));
     }
 
-    bar.addEventListener('mousedown', function (e) {
-      if (patternMode !== 'slider') return;
-      if (e.shiftKey) {
-        var slotEl = e.target.closest('.pslot');
-        if (slotEl) {
-          var idx = parseInt(slotEl.dataset.slot, 10);
-          if (idx < filledCount()) deletePreset(idx);
-        }
-        return;
-      }
+    track.addEventListener('mousedown', function (e) {
       isDragging = true;
       setPatternPos(posFromEvent(e));
       e.preventDefault();
@@ -400,15 +367,6 @@
     window.addEventListener('mouseup', function () {
       isDragging = false;
     });
-
-    // Mode toggle
-    var modeToggle = document.getElementById('pattern-mode-toggle');
-    if (modeToggle) {
-      modeToggle.addEventListener('click', function () {
-        setPatternMode(patternMode === 'buttons' ? 'slider' : 'buttons');
-      });
-    }
-    setPatternMode('buttons');
   }
 
   /* ── Multi-arc readhead path ────────────────────────────────────────────── */
