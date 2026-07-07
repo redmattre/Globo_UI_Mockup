@@ -198,27 +198,18 @@
         </div>`;
     }).join('');
 
+    const interpMs = window.ArcsAPI ? window.ArcsAPI.getInterpolationTime() : 800;
+
     return `
       <div class="settings-left generali-left">
         <div class="param-row">
-          <span class="param-name">Doppler</span>
-          <input type="range" class="param-slider" id="g-doppler" min="0" max="100" value="0" data-unit="">
-          <span class="param-value mono" id="g-doppler-val">0</span>
+          <span class="param-name">Interpolation Switch Time</span>
+          <input type="number" class="che-input param-numbox mono" id="g-interp-time" min="0" max="10000" step="50" value="${interpMs}">
+          <span class="param-value mono">ms</span>
         </div>
-        <div class="param-row">
-          <span class="param-name">Room Size</span>
-          <input type="range" class="param-slider" id="g-room" min="0" max="100" value="40" data-unit="">
-          <span class="param-value mono" id="g-room-val">40</span>
-        </div>
-        <div class="param-row">
-          <span class="param-name">Air Abs.</span>
-          <input type="range" class="param-slider" id="g-air" min="0" max="100" value="20" data-unit="">
-          <span class="param-value mono" id="g-air-val">20</span>
-        </div>
-        <div class="param-row">
-          <span class="param-name">Near Clip</span>
-          <input type="range" class="param-slider" id="g-clip" min="0" max="100" value="10" data-unit="">
-          <span class="param-value mono" id="g-clip-val">10</span>
+        <div class="param-row wrap">
+          <span class="param-name">Lock Paradigms to Speaker Position</span>
+          <button class="bool-toggle mono" id="g-lock-paradigms" title="Lock Paradigms to Speaker Position">OFF</button>
         </div>
       </div>
       <div class="settings-right generali-right">
@@ -283,6 +274,23 @@
         });
         grid.addEventListener('mouseleave', () => {
           grid.querySelectorAll('.row-hover, .col-hover').forEach(el => el.classList.remove('row-hover', 'col-hover'));
+        });
+      }
+
+      const interpInput = document.getElementById('g-interp-time');
+      if (interpInput) {
+        interpInput.addEventListener('input', () => {
+          const ms = Math.max(0, parseInt(interpInput.value, 10) || 0);
+          if (window.ArcsAPI) window.ArcsAPI.setInterpolationTime(ms);
+        });
+      }
+
+      // Mockup toggle — visual only, off by default
+      const lockToggle = document.getElementById('g-lock-paradigms');
+      if (lockToggle) {
+        lockToggle.addEventListener('click', () => {
+          const active = lockToggle.classList.toggle('active');
+          lockToggle.textContent = active ? 'ON' : 'OFF';
         });
       }
     }

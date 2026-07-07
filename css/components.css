@@ -560,6 +560,10 @@
 .che-input::-webkit-inner-spin-button,
 .che-input::-webkit-outer-spin-button { opacity: 0.4; }
 .che-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-fill); }
+
+/* Standalone numeric setting inline in a param-row (e.g. Generali's
+   Interpolation Switch Time) — same look as .che-input, fixed compact width */
+.param-numbox { width: 70px; flex: 0 0 70px; text-align: center; }
 /* ── SPAT SELECTOR (header, left of settings button) ───────────────────────── */
 .spat-select { position: relative; }
 .spat-btn {
@@ -668,6 +672,34 @@
   min-width: 32px;
   text-align: right;
   flex-shrink: 0;
+}
+
+/* A param-row whose label is too long to sit on one line next to its
+   control (e.g. Generali's "Lock Paradigms to Speaker Position") */
+.param-row.wrap { align-items: flex-start; }
+.param-row.wrap .param-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.3;
+}
+
+/* Standalone on/off toggle — same look as .gs-btn / .spat-btn */
+.bool-toggle {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  font-size: var(--sz-xs);
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.bool-toggle:hover { background: var(--ink-fill); }
+.bool-toggle.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
 }
 
 /* ── SEGMENTED CONTROL ──────────────────────────────────────────────────────── */
@@ -1103,6 +1135,23 @@ body.rig-scrubbing, body.rig-scrubbing * { cursor: ns-resize !important; user-se
   background: rgba(26, 25, 23, 0.045);
   opacity: 0.7;
 }
+
+/* Shift-dragging a slot to reorder it: the slot being picked up dims and
+   gets a dashed outline, the slot it would land on turns solid black */
+.pslot.reorder-source {
+  opacity: 0.35;
+  outline: 1.5px dashed var(--border-strong);
+  outline-offset: -1.5px;
+}
+.pslot.reorder-target {
+  background: var(--ink);
+  color: #fff;
+  font-weight: 700;
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+body.reordering-preset, body.reordering-preset * { cursor: grabbing !important; user-select: none; }
 
 /* Morph track — thick "underline" beneath the numbers; drag the darker
    thumb inside it to blend continuously between existing presets. */

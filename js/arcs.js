@@ -9,7 +9,23 @@
   /* ── Pattern storage ────────────────────────────────────────────────────── */
   const patterns = Array(16).fill(null);
   let currentPattern = 0;
-  let patternPos = 0;  // float 0.0–15.0 — may be fractional during morph drag
+  let patternPos = 0;  // float 0.0–15.0 — may be fractional during morph drag/animation
+
+  // Reorder-drag (shift+drag a slot): { fromIdx, targetIdx } while in progress, else null
+  let reorderState = null;
+
+  // Animated switch between presets (click a slot / delete / reorder land on
+  // it) — a SEPARATE mechanism from the morph-track drag: it blends directly
+  // between exactly the current live state and the target preset, over
+  // `interpolationMs`, regardless of what other presets sit in between (a
+  // switch from 1 to 5 never visits 2/3/4 — those only matter when you
+  // physically drag the morph track across them).
+  let interpolationMs = 800;
+  let animRAF = null;
+
+  function cancelAnimation() {
+    if (animRAF !== null) { cancelAnimationFrame(animRAF); animRAF = null; }
+  }
 
   function deepCopyArcs() {
     return JSON.parse(JSON.stringify(window.CircleState.arcs));
@@ -171,30 +187,10 @@
     return ((a + diff * t) % 360 + 360) % 360;
   }
 
-  /**
-   * Compute morphed state (arcs + subgroups) for a fractional pattern position.
-   * Finds the nearest filled slots below and above pos, then interpolates.
-   */
-  function computeStateAtPos(pos) {
-    // Search downward for a filled slot
-    var srcLo = null, loIdx = Math.floor(pos);
-    for (var i = Math.floor(pos); i >= 0; i--) {
-      if (patterns[i]) { srcLo = patterns[i]; loIdx = i; break; }
-    }
-    // Search upward
-    var srcHi = null, hiIdx = Math.ceil(pos);
-    for (var j = Math.ceil(pos); j < 16; j++) {
-      if (patterns[j]) { srcHi = patterns[j]; hiIdx = j; break; }
-    }
-
-    if (!srcLo && !srcHi) return snapshotState();
-    if (!srcLo) return JSON.parse(JSON.stringify(srcHi));
-    if (!srcHi) return JSON.parse(JSON.stringify(srcLo));
-    if (loIdx === hiIdx)  return JSON.parse(JSON.stringify(srcLo));
-
-    // Normalised t: 0 at loIdx, 1 at hiIdx
-    var t = (pos - loIdx) / (hiIdx - loIdx);
-
+  /** Blend exactly two snapshots at t (0 = srcLo, 1 = srcHi). Shared by the
+   *  morph-track drag (computeStateAtPos, below) and the direct preset-switch
+   *  animation (animateDirectSwitch) — same math, different source pair. */
+  function interpolateStates(srcLo, srcHi, t) {
     var arcs = srcLo.arcs.map(function (arcA, idx) {
       var arcB = srcHi.arcs[idx];
       return {
@@ -230,6 +226,83 @@
     };
   }
 
+  /**
+   * Compute morphed state (arcs + subgroups) for a fractional pattern position.
+   * Finds the nearest filled slots below and above pos, then interpolates.
+   */
+  function computeStateAtPos(pos) {
+    // Search downward for a filled slot
+    var srcLo = null, loIdx = Math.floor(pos);
+    for (var i = Math.floor(pos); i >= 0; i--) {
+      if (patterns[i]) { srcLo = patterns[i]; loIdx = i; break; }
+    }
+    // Search upward
+    var srcHi = null, hiIdx = Math.ceil(pos);
+    for (var j = Math.ceil(pos); j < 16; j++) {
+      if (patterns[j]) { srcHi = patterns[j]; hiIdx = j; break; }
+    }
+
+    if (!srcLo && !srcHi) return snapshotState();
+    if (!srcLo) return JSON.parse(JSON.stringify(srcHi));
+    if (!srcHi) return JSON.parse(JSON.stringify(srcLo));
+    if (loIdx === hiIdx)  return JSON.parse(JSON.stringify(srcLo));
+
+    // Normalised t: 0 at loIdx, 1 at hiIdx
+    var t = (pos - loIdx) / (hiIdx - loIdx);
+    return interpolateStates(srcLo, srcHi, t);
+  }
+
+  /** Apply a blended (or exact) state to the live circle/module/etc — does
+   *  NOT touch patternPos/currentPattern, so it's safe to call every frame
+   *  of a direct-switch animation without disturbing the preset bar. */
+  function applyBlendedLive(state) {
+    window.CircleState.arcs = state.arcs;
+    applySubgroups(state.subgroups);
+    applyFullState(state);
+    updateArcButtons();
+    syncHeightSlider(window.CircleState.selected);
+    if (window.CircleAPI) window.CircleAPI.draw();
+    var rpos = (window.AppBridge && window.AppBridge.getReadheadPos) ? window.AppBridge.getReadheadPos() : 0.4;
+    applyReadhead(rpos);
+  }
+
+  /** Direct A -> B switch: the preset bar jumps to `toIdx` immediately, while
+   *  the live visual state eases from wherever it currently is straight into
+   *  the target preset — never through whatever presets sit in between. */
+  function animateDirectSwitch(toIdx) {
+    cancelAnimation();
+    var toSnap = patterns[toIdx];
+    if (!toSnap) return;
+    var fromSnap = snapshotState();
+
+    patternPos     = toIdx;
+    currentPattern = toIdx;
+    updatePatternSlider();
+
+    if (interpolationMs <= 0) { applyBlendedLive(toSnap); return; }
+
+    var startTime = null;
+    function tick(ts) {
+      if (startTime === null) startTime = ts;
+      var t = Math.min(1, (ts - startTime) / interpolationMs);
+      applyBlendedLive(interpolateStates(fromSnap, toSnap, t));
+      animRAF = (t < 1) ? requestAnimationFrame(tick) : null;
+    }
+    animRAF = requestAnimationFrame(tick);
+  }
+
+  /** Instant A -> B switch (no morph): same bookkeeping as animateDirectSwitch
+   *  but applies the target snapshot immediately — used for option/alt+click. */
+  function switchPresetInstant(toIdx) {
+    var toSnap = patterns[toIdx];
+    if (!toSnap) return;
+    cancelAnimation();
+    patternPos     = toIdx;
+    currentPattern = toIdx;
+    updatePatternSlider();
+    applyBlendedLive(toSnap);
+  }
+
   function updatePatternSlider() {
     var thumb = document.getElementById('pattern-thumb');
     if (thumb) {
@@ -246,8 +319,18 @@
       el.classList.toggle('filled',   filled);
       el.classList.toggle('active',   onActive);
       el.classList.toggle('morphing', !onActive && (isMorphLo || isMorphHi));
+      var isReorderSrc = !!reorderState && reorderState.fromIdx === i;
+      var isReorderTgt = !!reorderState && reorderState.targetIdx === i && reorderState.fromIdx !== i;
+      el.classList.toggle('reorder-source', isReorderSrc);
+      el.classList.toggle('reorder-target', isReorderTgt);
+      // Preview the swap while dragging: the two involved slots trade their
+      // number labels too, so it visibly reads as "these two are swapping".
+      // They snap back to their normal positional number the moment you drop.
+      el.textContent = isReorderSrc ? reorderState.targetIdx + 1
+                      : isReorderTgt ? reorderState.fromIdx + 1
+                      : i + 1;
       el.title = filled
-        ? 'Preset ' + (i + 1) + ' — clic: richiama · shift+clic: elimina'
+        ? 'Preset ' + (i + 1) + ' — clic: richiama · alt+clic: istantaneo · shift+trascina: riordina · ctrl+clic: elimina'
         : (i === count ? 'Preset ' + (i + 1) + ' — clic: salva qui' : '');
     });
   }
@@ -279,11 +362,27 @@
     return n;
   }
 
-  /** Load an existing preset by index (clamped to the filled range). */
-  function loadPreset(idx) {
+  /** Load an existing preset by index (clamped to the filled range), morphing
+   *  into it over `interpolationMs` — unless `instant` is set (option/alt+click),
+   *  which jumps straight there with no animation. */
+  function loadPreset(idx, instant) {
     var count = filledCount();
     if (count === 0) return;
-    setPatternPos(Math.max(0, Math.min(idx, count - 1)));
+    var target = Math.max(0, Math.min(idx, count - 1));
+    if (instant) switchPresetInstant(target);
+    else animateDirectSwitch(target);
+  }
+
+  /** Reorder: swap two existing presets — the one being dragged takes the
+   *  target's spot, and the target takes the dragged one's old spot. Only
+   *  ever trades two already-filled slots, so it can never create a hole. */
+  function movePreset(fromIdx, toIdx) {
+    var count = filledCount();
+    if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= count || toIdx >= count) return;
+    var tmp = patterns[fromIdx];
+    patterns[fromIdx] = patterns[toIdx];
+    patterns[toIdx]   = tmp;
+    loadPreset(toIdx);
   }
 
   /** Save the current live state as a brand-new preset — always at the next
@@ -326,19 +425,55 @@
     patterns[0] = snapshotState();
     updatePatternSlider();
 
-    /* ── Numbers: click a slot to load it, click empty space to create a
-       new one at the frontier, shift-click a filled slot to delete it ── */
-    bar.addEventListener('click', function (e) {
+    /* ── Numbers: plain click loads a slot (or creates one at the frontier),
+       ctrl+click deletes it, shift+drag reorders it within the filled
+       range — dropping on itself is a no-op. ── */
+    function slotIndexFromEvent(e) {
+      var rect = bar.getBoundingClientRect();
+      var x = (e.clientX - rect.left) / rect.width;
+      return Math.max(0, Math.min(15, Math.floor(x * 16)));
+    }
+
+    bar.addEventListener('mousedown', function (e) {
       var slotEl = e.target.closest('.pslot');
       if (!slotEl) return;
       var idx   = parseInt(slotEl.dataset.slot, 10);
       var count = filledCount();
-      if (e.shiftKey) {
+      cancelAnimation();
+
+      if (e.ctrlKey) {
         if (idx < count) deletePreset(idx);
         return;
       }
-      if (idx < count) loadPreset(idx);
+      if (e.shiftKey) {
+        if (idx >= count) return; // only existing presets can be reordered
+        reorderState = { fromIdx: idx, targetIdx: idx };
+        document.body.classList.add('reordering-preset');
+        updatePatternSlider();
+        e.preventDefault();
+        return;
+      }
+      if (idx < count) loadPreset(idx, e.altKey);
       else createPreset();
+    });
+
+    window.addEventListener('mousemove', function (e) {
+      if (!reorderState) return;
+      var count  = filledCount();
+      var target = Math.max(0, Math.min(count - 1, slotIndexFromEvent(e)));
+      if (target !== reorderState.targetIdx) {
+        reorderState.targetIdx = target;
+        updatePatternSlider();
+      }
+    });
+
+    window.addEventListener('mouseup', function () {
+      if (!reorderState) return;
+      var from = reorderState.fromIdx, to = reorderState.targetIdx;
+      reorderState = null;
+      document.body.classList.remove('reordering-preset');
+      if (from !== to) movePreset(from, to);
+      else updatePatternSlider();
     });
 
     /* ── Morph track (the "underline" below the numbers): drag to blend
@@ -354,6 +489,7 @@
     }
 
     track.addEventListener('mousedown', function (e) {
+      cancelAnimation();
       isDragging = true;
       setPatternPos(posFromEvent(e));
       e.preventDefault();
@@ -424,5 +560,7 @@
     autosave:             autosave,
     applyReadhead:        applyReadhead,
     refreshSubgroupBadge: updateSubgroupLetters,
+    getInterpolationTime: function ()   { return interpolationMs; },
+    setInterpolationTime: function (ms) { interpolationMs = Math.max(0, ms); },
   };
 })();
