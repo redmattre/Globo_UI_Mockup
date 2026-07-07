@@ -502,6 +502,9 @@
         else { arc.heightMax = arc.heightMin; arc.heightMin = angle; dragging = 'min'; }
       }
       render();
+      // The isometric view (if visible) has its own live height handles —
+      // keep its wall-patch/dots tracking this slider in real time too.
+      if (window.CircleIsoAPI && window.CircleIsoAPI.isActive()) window.CircleIsoAPI.draw();
     }
 
     thumbMin.addEventListener('mousedown', e => { dragging = 'min'; e.preventDefault(); e.stopPropagation(); });

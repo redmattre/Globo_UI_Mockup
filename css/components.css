@@ -178,6 +178,40 @@
   transform: rotate(40deg);
 }
 
+/* ── CIRCLE VIEW CONTROLS (bottom-right of the circle graphic: iso toggle) ───── */
+.circle-view-controls {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+  background-color: red;
+}
+.circle-view-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.circle-view-btn .ico { width: 15px; height: 15px; }
+.circle-view-btn:hover { background: var(--ink-fill); }
+.circle-view-btn.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+/* Isometric view: drag the background (or an arc) to orbit around Z */
+#nav-circle-iso { cursor: grab; }
+body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !important; user-select: none; }
+
 /* ── LOGO BUTTON ────────────────────────────────────────────────────────────── */
 .logo-btn {
   flex: 0 0 28px;

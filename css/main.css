@@ -165,7 +165,21 @@ ul { list-style: none; }
   min-height: 0;
 }
 
-#nav-circle {
+/* Wraps the flat + isometric SVGs (only one un-hidden at a time) so the
+   view-toggle/rotate buttons have a positioning context scoped to just the
+   circle graphic — not the whole .circle-area row, which also contains the
+   height-control widget. */
+.circle-svg-wrap {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.circle-svg {
   flex: 1 1 0;
   min-width: 0;
   min-height: 0;
@@ -174,6 +188,12 @@ ul { list-style: none; }
   max-width: 110%;
   overflow: visible;
   display: block;
+}
+/* Author rules beat the UA stylesheet's [hidden]{display:none} at equal
+   specificity — without this, the "hidden" SVG never actually hid, so
+   flat + iso rendered simultaneously, squeezed into half the space each. */
+.circle-svg[hidden] {
+  display: none;
 }
 
 /* Height slider controls to the right of the circle */

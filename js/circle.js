@@ -689,8 +689,14 @@
 
   /* ── Public API ─────────────────────────────────────────────────────────── */
   window.CircleAPI = {
-    draw: draw,
-    setModule: function (mod) { window.CircleState.module = mod; draw(); },
+    // Dispatcher: the flat view always redraws (unchanged), and — only on
+    // discrete events, never mid-drag — the isometric view (if active)
+    // redraws too, so toggling between the two never shows a stale frame.
+    draw: function () {
+      draw();
+      if (window.CircleIsoAPI && window.CircleIsoAPI.isActive()) window.CircleIsoAPI.draw();
+    },
+    setModule: function (mod) { window.CircleState.module = mod; window.CircleAPI.draw(); },
     getState:  function () { return window.CircleState; },
   };
 
