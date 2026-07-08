@@ -179,6 +179,18 @@
     return '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="1" stroke-dasharray="3 2" opacity="0.55"/>';
   }
 
+  /** Invisible hit-band at the floor (el=0), always present — unlike the
+   *  wall patch's own hit-band (which follows the patch and can end up
+   *  dragged far away/foreshortened if the arc's height is high), this one
+   *  always sits at the same predictable spot, so there's always an easy,
+   *  reachable place to hover to bring up the controls regardless of where
+   *  the arc's actual surface currently is. */
+  function renderFloorHitBand(arc) {
+    var pts = sampleAz(arc.left, arc.right, 13).map(function (a) { return worldToScreen(a, 0, FLOOR_R); });
+    var d = 'M ' + pts.map(function (p) { return p.x.toFixed(2) + ' ' + p.y.toFixed(2); }).join(' L ');
+    return '<path d="' + d + '" fill="none" stroke="transparent" stroke-width="20"/>';
+  }
+
   /** Full 360° latitude-ring guides at heightMin/heightMax. On a sphere, the
    *  ring at a higher elevation is strictly smaller (radius shrinks by
    *  cos(el)) — for a narrow arc that shrinkage is only a few px across its
@@ -268,7 +280,10 @@
 
     var pL = worldToScreen(arc.left, 0, FLOOR_R);
     var pR = worldToScreen(arc.right, 0, FLOOR_R);
-    var pC = worldToScreen(cent, 0, FLOOR_R);
+    // Pushed just outside the sphere (not ON it, at FLOOR_R) — otherwise this
+    // sits exactly under the height-min handle whenever heightMin=0 (the
+    // common default), forcing an awkward raise/rotate/lower-back workflow.
+    var pC = worldToScreen(cent, 0, FLOOR_R * 1.12);
     var pO = worldToScreen(cent, 0, originR);
 
     var s = '';
@@ -325,7 +340,7 @@
       // with dashes everywhere. All of it lives INSIDE the same hoverable
       // group as the wall patch, or moving onto a handle/guide would read
       // as "left the arc" and everything would vanish under the cursor.
-      var inner = renderWallPatch(item.arc, isHov, color);
+      var inner = renderFloorHitBand(item.arc) + renderWallPatch(item.arc, isHov, color);
       if (isHov) {
         inner += renderFootprint(item.arc, color) + renderElevationGuides(item.arc, color) +
           renderAzimuthHandles(item.arc, color) + renderHeightHandles(item.arc, color);
