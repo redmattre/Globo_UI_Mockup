@@ -156,6 +156,7 @@ ul { list-style: none; }
 
 /* Upper part: SVG circle + height control */
 .circle-area {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
@@ -170,7 +171,6 @@ ul { list-style: none; }
    circle graphic — not the whole .circle-area row, which also contains the
    height-control widget. */
 .circle-svg-wrap {
-  position: relative;
   flex: 1 1 0;
   min-width: 0;
   min-height: 0;

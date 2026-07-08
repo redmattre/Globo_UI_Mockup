@@ -60,9 +60,13 @@
     };
   }
 
-  /** Classic 2:1 dimetric projection — same formula as rig.js's isoProject. */
+  /** Classic 2:1 dimetric projection. Note the sx sign: rig.js's original
+   *  formula was sx=(x-y)cos30, but that makes azimuth increase COUNTER-
+   *  clockwise on screen — mirrored relative to circle.js's flat view,
+   *  where angleOf/pt make it clockwise. Flipping to (y-x) matches the
+   *  flat view's chirality (verified: az=0/90/180/270 trace clockwise). */
   function isoProject(x, y, z) {
-    return { sx: (x - y) * COS30, sy: (x + y) * SIN30 - z };
+    return { sx: (y - x) * COS30, sy: (x + y) * SIN30 - z };
   }
 
   function worldToScreen(az, el, r) {
@@ -71,14 +75,15 @@
     return { x: CX + p.sx * SCALE, y: CY + p.sy * SCALE };
   }
 
-  /** Exact inverse of isoProject at z=0 (the floor plane) — the 2x2 map
-   *  sx=(x-y)cos30, sy=(x+y)sin30 has det=sin60≠0, so this is never
-   *  ambiguous/degenerate, unlike inverting elevation (see height handles). */
+  /** Exact inverse of isoProject at z=0 (the floor plane) — re-derived for
+   *  the flipped sx above. The 2x2 map sx=(y-x)cos30, sy=(x+y)sin30 has
+   *  det=sin60≠0, so this is never ambiguous/degenerate, unlike inverting
+   *  elevation (see height handles). */
   function screenToFloorXY(screenX, screenY) {
     var sx = (screenX - CX) / SCALE;
     var sy = (screenY - CY) / SCALE;
-    var x = (sx / COS30 + sy / SIN30) / 2;
-    var y = (sy / SIN30 - sx / COS30) / 2;
+    var x = (sy / SIN30 - sx / COS30) / 2;
+    var y = (sx / COS30 + sy / SIN30) / 2;
     return { x: x, y: y };
   }
   function floorAzimuthFromXY(x, y) {
@@ -198,7 +203,7 @@
    *  out from under the cursor (mirrors circle.js's flat-view structure,
    *  where handles are appended to the same hoverable `<g>` too). */
   function renderWallPatch(arc, isHov, color) {
-    var NAZ = 16, NEL = 8;
+    var NAZ = 32, NEL = 32;
     var azs = sampleAz(arc.left, arc.right, NAZ + 1);
     var els = sampleEl(arc.heightMin, arc.heightMax, NEL + 1);
 
@@ -314,11 +319,17 @@
     active.forEach(function (item) {
       var color = window.ARC_COLORS[item.idx];
       var isHov = item.idx === hovIdx;
-      var inner = renderFootprint(item.arc, color) + renderElevationGuides(item.arc, color) + renderWallPatch(item.arc, isHov, color);
-      // Handles live INSIDE the same hoverable group as the wall patch —
-      // otherwise moving onto a handle would read as "left the arc" and
-      // the handles would vanish out from under the cursor mid-drag-start.
-      if (isHov) inner += renderAzimuthHandles(item.arc, color) + renderHeightHandles(item.arc, color);
+      // The colored surface is always visible; the dashed reference lines
+      // (floor footprint, elevation-ring guides) and the drag handles only
+      // appear on hover — otherwise a scene with several arcs gets cluttered
+      // with dashes everywhere. All of it lives INSIDE the same hoverable
+      // group as the wall patch, or moving onto a handle/guide would read
+      // as "left the arc" and everything would vanish under the cursor.
+      var inner = renderWallPatch(item.arc, isHov, color);
+      if (isHov) {
+        inner += renderFootprint(item.arc, color) + renderElevationGuides(item.arc, color) +
+          renderAzimuthHandles(item.arc, color) + renderHeightHandles(item.arc, color);
+      }
       parts.push('<g data-arc-hover="' + item.idx + '" style="cursor:pointer;">' + inner + '</g>');
     });
 

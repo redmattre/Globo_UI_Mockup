@@ -186,7 +186,7 @@
   z-index: 5;
   display: flex;
   gap: 6px;
-  background-color: red;
+  /* background-color: red; */
 }
 .circle-view-btn {
   width: 26px;
