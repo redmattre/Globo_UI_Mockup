@@ -364,6 +364,22 @@
     }
   }
 
+  /* Coalesce redraws to at most once per animation frame — mousemove can
+     fire far more often than the screen actually repaints, and rebuilding
+     the whole SVG scene on every single event isn't free. Only this
+     render is throttled; every other control's own values/DOM updates
+     (height slider, speed range, readhead...) stay untouched and instant,
+     since those will eventually drive real audio parameters. */
+  var drawScheduled = false;
+  function requestDraw() {
+    if (drawScheduled) return;
+    drawScheduled = true;
+    requestAnimationFrame(function () {
+      drawScheduled = false;
+      draw();
+    });
+  }
+
   /* ── SVG coordinate conversion ──────────────────────────────────────────── */
   function toSVG(svg, e) {
     var p  = svg.createSVGPoint();
@@ -405,9 +421,9 @@
       } else {
         if (window.ArcsAPI) window.ArcsAPI.updateArcButtons();
       }
-      draw();
+      requestDraw();
     } else if (ghostArcIdx >= 0 || prevGhost >= 0) {
-      draw();
+      requestDraw();
     }
   }
 
@@ -421,7 +437,7 @@
       needDraw = true;
     }
     if (ghostArcIdx !== -1) { ghostArcIdx = -1; ghostPoint = null; needDraw = true; }
-    if (needDraw) draw();
+    if (needDraw) requestDraw();
   }
 
   /* ── Click on empty space: create + activate a new zone under the cursor ── */
@@ -536,7 +552,7 @@
     if (window.ArcsAPI && window.AppBridge) {
       cs.positionAngle = window.ArcsAPI.computePositionAngle(window.AppBridge.getReadheadPos());
     }
-    draw();
+    requestDraw();
   }
 
   function onUp() {
@@ -555,10 +571,61 @@
     if (g) { var d = g.querySelector('.trim-dot-el'); if (d) d.setAttribute('r', '3.5'); }
   }
   /* ── Double-click handle editor ────────────────────────────────────────────── */
-  function openHandleEditor(handleType, arcIdx, screenX, screenY) {
+  /** Generic "punch in a precise value" popup — positioning, keyboard
+   *  wiring (Enter/Escape/blur) and the double-fire guard are all handled
+   *  here; callers only supply what to show and what to do with the parsed
+   *  number. Exported as window.ValueEditorAPI so circle-iso.js and the
+   *  flat height-range slider (app.js) can reuse the exact same popup
+   *  instead of each re-implementing it.
+   *  opts: { label, value, min, max, screenX, screenY, onApply(rawNumber) } */
+  function openValueEditor(opts) {
     var existing = document.getElementById('circle-handle-editor');
     if (existing) existing.remove();
 
+    var wrap = document.createElement('div');
+    wrap.id = 'circle-handle-editor';
+    wrap.innerHTML =
+      '<span class="che-label">' + opts.label + '</span>' +
+      '<input class="che-input mono" type="number" min="' + opts.min +
+      '" max="' + opts.max + '" value="' + opts.value + '" autocomplete="off">';
+
+    document.body.appendChild(wrap);
+    var pw = wrap.offsetWidth, ph = wrap.offsetHeight;
+    var vw = window.innerWidth,  vh = window.innerHeight;
+    var x  = Math.min(opts.screenX + 10, vw - pw - 10);
+    var y  = opts.screenY - ph - 10;
+    if (y < 8) y = opts.screenY + 14;
+    wrap.style.left = x + 'px';
+    wrap.style.top  = y + 'px';
+
+    var input = wrap.querySelector('.che-input');
+    input.focus();
+    input.select();
+
+    function dismiss() {
+      var el = document.getElementById('circle-handle-editor');
+      if (el) el.remove();
+    }
+
+    function applyValue() {
+      if (!document.getElementById('circle-handle-editor')) return; // already dismissed
+      var raw = parseFloat(input.value);
+      dismiss();
+      if (!isNaN(raw)) opts.onApply(raw);
+    }
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter')  { applyValue(); e.preventDefault(); }
+      if (e.key === 'Escape') { dismiss();    e.preventDefault(); }
+    });
+    input.addEventListener('blur', function () {
+      setTimeout(applyValue, 60); // allow Enter keydown to fire first
+    });
+  }
+
+  window.ValueEditorAPI = { open: openValueEditor };
+
+  function openHandleEditor(handleType, arcIdx, screenX, screenY) {
     var cs  = window.CircleState;
     var arc = cs.arcs[arcIdx];
     if (!arc) return;
@@ -589,71 +656,37 @@
       default: return;
     }
 
-    var wrap = document.createElement('div');
-    wrap.id = 'circle-handle-editor';
-    wrap.innerHTML =
-      '<span class="che-label">' + label + '</span>' +
-      '<input class="che-input mono" type="number" min="' + minVal +
-      '" max="' + maxVal + '" value="' + currentVal + '" autocomplete="off">';
+    openValueEditor({
+      label: label, value: currentVal, min: minVal, max: maxVal,
+      screenX: screenX, screenY: screenY,
+      onApply: function (raw) {
+        if (handleType === 'origin') {
+          var newSpan = Math.max(1, Math.min(359, Math.round(raw)));
+          var nL = norm(cent - newSpan / 2);
+          var nR = norm(cent + newSpan / 2);
+          if (!wouldOverlap(arcIdx, nL, nR)) { arc.left = nL; arc.right = nR; }
 
-    document.body.appendChild(wrap);
-    var pw = wrap.offsetWidth, ph = wrap.offsetHeight;
-    var vw = window.innerWidth,  vh = window.innerHeight;
-    var x  = Math.min(screenX + 10, vw - pw - 10);
-    var y  = screenY - ph - 10;
-    if (y < 8) y = screenY + 14;
-    wrap.style.left = x + 'px';
-    wrap.style.top  = y + 'px';
-
-    var input = wrap.querySelector('.che-input');
-    input.focus();
-    input.select();
-
-    function dismiss() {
-      var el = document.getElementById('circle-handle-editor');
-      if (el) el.remove();
-    }
-
-    function applyValue() {
-      if (!document.getElementById('circle-handle-editor')) return; // already dismissed
-      var raw = parseFloat(input.value);
-      if (isNaN(raw)) { dismiss(); return; }
-
-      if (handleType === 'origin') {
-        var newSpan = Math.max(1, Math.min(359, Math.round(raw)));
-        var nL = norm(cent - newSpan / 2);
-        var nR = norm(cent + newSpan / 2);
-        if (!wouldOverlap(arcIdx, nL, nR)) { arc.left = nL; arc.right = nR; }
-
-      } else {
-        var deg = toInternal(raw);
-        if (handleType === 'trim-left') {
-          if (arcSpan(deg, arc.right) > 1 && !wouldOverlap(arcIdx, deg, arc.right))
-            arc.left = deg;
-        } else if (handleType === 'trim-right') {
-          if (arcSpan(arc.left, deg) > 1 && !wouldOverlap(arcIdx, arc.left, deg))
-            arc.right = deg;
-        } else if (handleType === 'centroid') {
-          var half = span / 2;
-          var cL = norm(deg - half);
-          var cR = norm(deg + half);
-          if (!wouldOverlap(arcIdx, cL, cR)) { arc.left = cL; arc.right = cR; }
+        } else {
+          var deg = toInternal(raw);
+          if (handleType === 'trim-left') {
+            if (arcSpan(deg, arc.right) > 1 && !wouldOverlap(arcIdx, deg, arc.right))
+              arc.left = deg;
+          } else if (handleType === 'trim-right') {
+            if (arcSpan(arc.left, deg) > 1 && !wouldOverlap(arcIdx, arc.left, deg))
+              arc.right = deg;
+          } else if (handleType === 'centroid') {
+            var half = span / 2;
+            var cL = norm(deg - half);
+            var cR = norm(deg + half);
+            if (!wouldOverlap(arcIdx, cL, cR)) { arc.left = cL; arc.right = cR; }
+          }
         }
-      }
 
-      if (window.ArcsAPI) window.ArcsAPI.autosave();
-      if (window.ArcsAPI && window.AppBridge)
-        cs.positionAngle = window.ArcsAPI.computePositionAngle(window.AppBridge.getReadheadPos());
-      draw();
-      dismiss();
-    }
-
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter')  { applyValue(); e.preventDefault(); }
-      if (e.key === 'Escape') { dismiss();    e.preventDefault(); }
-    });
-    input.addEventListener('blur', function () {
-      setTimeout(applyValue, 60); // allow Enter keydown to fire first
+        if (window.ArcsAPI) window.ArcsAPI.autosave();
+        if (window.ArcsAPI && window.AppBridge)
+          cs.positionAngle = window.ArcsAPI.computePositionAngle(window.AppBridge.getReadheadPos());
+        draw();
+      },
     });
   }
 
@@ -693,7 +726,7 @@
     // discrete events, never mid-drag — the isometric view (if active)
     // redraws too, so toggling between the two never shows a stale frame.
     draw: function () {
-      draw();
+      requestDraw();
       if (window.CircleIsoAPI && window.CircleIsoAPI.isActive()) window.CircleIsoAPI.draw();
     },
     setModule: function (mod) { window.CircleState.module = mod; window.CircleAPI.draw(); },

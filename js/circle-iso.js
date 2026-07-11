@@ -191,6 +191,20 @@
     return '<path d="' + d + '" fill="none" stroke="transparent" stroke-width="20"/>';
   }
 
+  /** Invisible hit-band along the whole center→centroid radius, always
+   *  present. The "origin" handle (span control) lives somewhere on this
+   *  line at a radius that varies with the arc's span, and its own guide
+   *  line is only 0.75px wide — nowhere near enough to keep hover alive
+   *  while moving the cursor along it. This band covers the full radius
+   *  (center out past the centroid handle, whatever the span currently is),
+   *  so hover never drops before reaching either handle. */
+  function renderCentroidRadiusHitBand(arc) {
+    var cent  = norm(arc.left + arcSpan(arc.left, arc.right) / 2);
+    var outer = worldToScreen(cent, 0, FLOOR_R * 1.2); // just past the centroid handle at 1.18*FLOOR_R
+    return '<line x1="' + CX + '" y1="' + CY + '" x2="' + outer.x.toFixed(2) + '" y2="' + outer.y.toFixed(2) +
+      '" stroke="transparent" stroke-width="18"/>';
+  }
+
   /** Full 360° latitude-ring guides at heightMin/heightMax. On a sphere, the
    *  ring at a higher elevation is strictly smaller (radius shrinks by
    *  cos(el)) — for a narrow arc that shrinkage is only a few px across its
@@ -340,7 +354,7 @@
       // with dashes everywhere. All of it lives INSIDE the same hoverable
       // group as the wall patch, or moving onto a handle/guide would read
       // as "left the arc" and everything would vanish under the cursor.
-      var inner = renderFloorHitBand(item.arc) + renderWallPatch(item.arc, isHov, color);
+      var inner = renderFloorHitBand(item.arc) + renderCentroidRadiusHitBand(item.arc) + renderWallPatch(item.arc, isHov, color);
       if (isHov) {
         inner += renderFootprint(item.arc, color) + renderElevationGuides(item.arc, color) +
           renderAzimuthHandles(item.arc, color) + renderHeightHandles(item.arc, color);
@@ -349,6 +363,21 @@
     });
 
     g.innerHTML = parts.join('');
+  }
+
+  /* Coalesce redraws to at most once per animation frame — same rationale
+     as circle.js: mousemove fires far more often than the screen repaints,
+     and this view's per-arc 32×32 wall-patch grid isn't cheap to rebuild
+     from scratch every time. Other controls (height slider, speed range...)
+     stay untouched and keep updating at native event rate. */
+  var drawScheduled = false;
+  function requestDraw() {
+    if (drawScheduled) return;
+    drawScheduled = true;
+    requestAnimationFrame(function () {
+      drawScheduled = false;
+      draw();
+    });
   }
 
   /* ── Hover / selection (mirrors circle.js's onSVGMouseMove exactly) ─────── */
@@ -370,7 +399,7 @@
     } else if (window.ArcsAPI) {
       window.ArcsAPI.updateArcButtons();
     }
-    draw();
+    requestDraw();
   }
 
   function onIsoMouseLeave() {
@@ -379,7 +408,7 @@
     if (!cs || cs.hovered === -1) return;
     cs.hovered = -1;
     if (window.ArcsAPI) window.ArcsAPI.updateArcButtons();
-    draw();
+    requestDraw();
   }
 
   /* ── Drag: azimuth handles (exact) + height handles (scrubber) + orbit ──── */
@@ -419,7 +448,7 @@
     if (rotateDragState) {
       var dx = e.clientX - rotateDragState.startX;
       viewRotationDeg = norm(rotateDragState.startRotation + dx * ROTATE_SENSITIVITY);
-      draw();
+      requestDraw();
       return;
     }
     if (!dragState) return;
@@ -445,7 +474,7 @@
       // Live sync on every intermediate step, not just on drop — the flat
       // slider is visible at the same time and must track in real time.
       if (window.ArcsAPI) window.ArcsAPI.syncHeightSlider(dragState.arcIdx);
-      draw();
+      requestDraw();
       return;
     }
 
@@ -484,7 +513,7 @@
     if (window.ArcsAPI && window.AppBridge) {
       cs.positionAngle = window.ArcsAPI.computePositionAngle(window.AppBridge.getReadheadPos());
     }
-    draw();
+    requestDraw();
   }
 
   function onIsoUp() {
@@ -492,6 +521,78 @@
     dragState = null;
     rotateDragState = null;
     document.body.classList.remove('circle-iso-rotating');
+  }
+
+  /** Double-click a handle to punch in a precise value — same popup as the
+   *  flat view (window.ValueEditorAPI, defined in circle.js), just fed the
+   *  6 handle types this view has (the flat view's 4 azimuth ones, plus the
+   *  2 new height ones). */
+  function onIsoDblClick(e) {
+    var handle = e.target.closest('[data-handle]');
+    if (!handle) return;
+    e.preventDefault();
+    if (!window.ValueEditorAPI) return;
+    var cs = window.CircleState;
+    if (!cs) return;
+    var arcIdx = cs.hovered >= 0 ? cs.hovered : cs.selected;
+    var arc = cs.arcs[arcIdx];
+    if (!arc) return;
+    var type = handle.dataset.handle;
+    var span = arcSpan(arc.left, arc.right);
+    var cent = norm(arc.left + span / 2);
+
+    /* ±180° display convention, same as the flat view's editor */
+    function toDisplay(internal) { var d = norm(internal); return d > 180 ? d - 360 : d; }
+    function toInternal(display) { return norm(Math.round(display)); }
+
+    var label, value, min, max;
+    if (type === 'height-min' || type === 'height-max') {
+      var b = heightBounds(arc.heightMode);
+      label = type === 'height-min' ? 'Elevazione min (°)' : 'Elevazione max (°)';
+      value = Math.round(type === 'height-min' ? arc.heightMin : arc.heightMax);
+      min = b.min; max = b.max;
+    } else if (type === 'trim-left')  { label = 'Angolo sinistro (°)'; value = toDisplay(arc.left);  min = -180; max = 180; }
+    else if (type === 'trim-right')   { label = 'Angolo destro (°)';   value = toDisplay(arc.right); min = -180; max = 180; }
+    else if (type === 'centroid')     { label = 'Centroide (°)';       value = toDisplay(cent);      min = -180; max = 180; }
+    else if (type === 'origin')       { label = 'Apertura (°)';        value = Math.round(span);     min = 1;    max = 359; }
+    else return;
+
+    window.ValueEditorAPI.open({
+      label: label, value: value, min: min, max: max,
+      screenX: e.clientX, screenY: e.clientY,
+      onApply: function (raw) {
+        if (type === 'height-min' || type === 'height-max') {
+          var b2 = heightBounds(arc.heightMode);
+          var v = Math.max(b2.min, Math.min(b2.max, raw));
+          if (type === 'height-min') {
+            if (v <= arc.heightMax) arc.heightMin = v; else { arc.heightMin = arc.heightMax; arc.heightMax = v; }
+          } else {
+            if (v >= arc.heightMin) arc.heightMax = v; else { arc.heightMax = arc.heightMin; arc.heightMin = v; }
+          }
+          if (window.ArcsAPI) window.ArcsAPI.syncHeightSlider(arcIdx);
+        } else if (type === 'origin') {
+          var newSpan = Math.max(1, Math.min(359, Math.round(raw)));
+          var nL = norm(cent - newSpan / 2), nR = norm(cent + newSpan / 2);
+          if (!wouldOverlapIso(arcIdx, nL, nR)) { arc.left = nL; arc.right = nR; }
+        } else {
+          var deg = toInternal(raw);
+          if (type === 'trim-left') {
+            if (arcSpan(deg, arc.right) > 1 && !wouldOverlapIso(arcIdx, deg, arc.right)) arc.left = deg;
+          } else if (type === 'trim-right') {
+            if (arcSpan(arc.left, deg) > 1 && !wouldOverlapIso(arcIdx, arc.left, deg)) arc.right = deg;
+          } else if (type === 'centroid') {
+            var half = span / 2;
+            var cL = norm(deg - half), cR = norm(deg + half);
+            if (!wouldOverlapIso(arcIdx, cL, cR)) { arc.left = cL; arc.right = cR; }
+          }
+        }
+        if (window.ArcsAPI) window.ArcsAPI.autosave();
+        if (window.ArcsAPI && window.AppBridge) {
+          cs.positionAngle = window.ArcsAPI.computePositionAngle(window.AppBridge.getReadheadPos());
+        }
+        draw();
+      },
+    });
   }
 
   /* ── Toggle ───────────────────────────────────────────────────────────── */
@@ -538,6 +639,7 @@
     svg.addEventListener('mousemove',  onIsoMouseMove);
     svg.addEventListener('mouseleave', onIsoMouseLeave);
     svg.addEventListener('mousedown',  onIsoDown);
+    svg.addEventListener('dblclick',   onIsoDblClick);
     window.addEventListener('mousemove', onIsoMove);
     window.addEventListener('mouseup',   onIsoUp);
 
@@ -548,7 +650,7 @@
 
   /* ── Public API ───────────────────────────────────────────────────────── */
   window.CircleIsoAPI = {
-    draw: draw,
+    draw: requestDraw,
     isActive: function () { return isoActive; },
     show: show,
     hide: hide,

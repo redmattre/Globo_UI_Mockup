@@ -184,8 +184,8 @@ ul { list-style: none; }
   min-width: 0;
   min-height: 0;
   aspect-ratio: 1 / 1;
-  max-height: 80%;
-  max-width: 80%;
+  max-height: 95%;
+  max-width: 95%;
   overflow: visible;
   display: block;
 }

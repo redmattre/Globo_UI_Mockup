@@ -507,6 +507,34 @@
       if (window.CircleIsoAPI && window.CircleIsoAPI.isActive()) window.CircleIsoAPI.draw();
     }
 
+    /** Double-click a thumb to punch in a precise value — same shared popup
+     *  (window.ValueEditorAPI, defined in circle.js) used by the flat
+     *  circle's own handles and by the isometric view's handles. */
+    function openHeightEditor(which, e) {
+      const arc = currentArc();
+      if (!arc || !window.ValueEditorAPI) return;
+      const b = bounds();
+      window.ValueEditorAPI.open({
+        label: which === 'min' ? 'Elevazione min (°)' : 'Elevazione max (°)',
+        value: Math.round(which === 'min' ? arc.heightMin : arc.heightMax),
+        min: b.min, max: b.max,
+        screenX: e.clientX, screenY: e.clientY,
+        onApply(raw) {
+          const v = Math.max(b.min, Math.min(b.max, raw));
+          if (which === 'min') {
+            if (v <= arc.heightMax) arc.heightMin = v; else { arc.heightMin = arc.heightMax; arc.heightMax = v; }
+          } else {
+            if (v >= arc.heightMin) arc.heightMax = v; else { arc.heightMax = arc.heightMin; arc.heightMin = v; }
+          }
+          render();
+          if (window.ArcsAPI) window.ArcsAPI.autosave();
+          if (window.CircleIsoAPI && window.CircleIsoAPI.isActive()) window.CircleIsoAPI.draw();
+        },
+      });
+    }
+    thumbMin.addEventListener('dblclick', e => { e.stopPropagation(); openHeightEditor('min', e); });
+    thumbMax.addEventListener('dblclick', e => { e.stopPropagation(); openHeightEditor('max', e); });
+
     thumbMin.addEventListener('mousedown', e => { dragging = 'min'; e.preventDefault(); e.stopPropagation(); });
     thumbMax.addEventListener('mousedown', e => { dragging = 'max'; e.preventDefault(); e.stopPropagation(); });
     track.addEventListener('mousedown', e => {
