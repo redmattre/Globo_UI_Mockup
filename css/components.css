@@ -420,13 +420,23 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 .param-slider:focus, .rh-force-slider:focus { outline: none; }
 
 /* ── READHEAD BAR ───────────────────────────────────────────────────────────── */
-.rh-angle {
+
+/* Letter toggle (left of the track) — switches which of the two readheads
+   is active. The second readhead (H) is a purely visual placeholder for now,
+   not wired to any position/parameter. */
+.rh-switch-btn {
+  flex-shrink: 0;
+  min-width: 18px;
+  padding: 2px 5px;
   font-size: var(--sz-xs);
-  color: var(--text-3);
-  white-space: nowrap;
-  min-width: 28px;
+  font-weight: 700;
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
-.rh-angle:first-child { text-align: right; }
+.rh-switch-btn:hover { background: var(--ink-fill); }
 
 .rh-track-wrap {
   flex: 1;
@@ -475,6 +485,18 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 }
 .rh-marker:active { cursor: grabbing; }
 .rh-marker:hover  { border-top-color: #000; }
+
+/* Non-active readhead: dimmed, lighter tip — swapped via the A/H switch */
+.rh-marker.dim {
+  border-top-color: var(--border-strong);
+  opacity: 0.55;
+}
+
+/* Second readhead (H) — placeholder only, not draggable yet */
+.rh-marker-h {
+  pointer-events: none;
+  cursor: default;
+}
 
 .rh-controls {
   display: flex;

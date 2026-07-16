@@ -129,16 +129,15 @@
 
           <!-- Readhead: always visible, below the circle -->
           <div class="readhead-bar" id="readhead-bar">
-            <span class="rh-angle mono" id="rh-start">0.</span>
+            <button class="rh-switch-btn mono" id="rh-switch-btn" title="Testina attiva">A</button>
 
             <div class="rh-track-wrap">
               <div class="rh-track" id="rh-track">
                 <div class="rh-dots" id="rh-dots"></div>
-                <div class="rh-marker" id="rh-marker" title="Testina di lettura"></div>
+                <div class="rh-marker" id="rh-marker" data-readhead="A" title="Testina di lettura A"></div>
+                <div class="rh-marker rh-marker-h" id="rh-marker-h" data-readhead="H" style="left:62%" title="Testina di lettura H"></div>
               </div>
             </div>
-
-            <span class="rh-angle mono" id="rh-end">1.</span>
 
             <div class="rh-controls">
               <div class="rh-ease-select" id="rh-ease-select">

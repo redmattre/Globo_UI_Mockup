@@ -375,6 +375,25 @@
         applyReadheadToCircle(state.readheadPos);
       });
     }
+
+    // A/H switch — which readhead is active. H is a visual placeholder only
+    // (not wired to any position/parameter yet), so switching to it just
+    // dims marker A and highlights marker H, nothing else changes.
+    const switchBtn = document.getElementById('rh-switch-btn');
+    const markerH   = document.getElementById('rh-marker-h');
+    let activeReadhead = 'A';
+    function updateActiveReadheadVisual() {
+      marker.classList.toggle('dim', activeReadhead !== 'A');
+      if (markerH) markerH.classList.toggle('dim', activeReadhead !== 'H');
+    }
+    updateActiveReadheadVisual();
+    if (switchBtn) {
+      switchBtn.addEventListener('click', () => {
+        activeReadhead = activeReadhead === 'A' ? 'H' : 'A';
+        switchBtn.textContent = activeReadhead;
+        updateActiveReadheadVisual();
+      });
+    }
   }
 
   function setReadheadPos(pos) {
