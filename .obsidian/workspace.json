@@ -11,17 +11,14 @@
             "id": "1a1d4e0c4f3681d8",
             "type": "leaf",
             "state": {
-              "type": "canvas",
+              "type": "markdown",
               "state": {
-                "file": "Architettura_draft.canvas",
-                "viewState": {
-                  "x": 182.15668922645193,
-                  "y": 70.95137148185991,
-                  "zoom": -0.6929829120635987
-                }
+                "file": "Riunione 1.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-layout-dashboard",
-              "title": "Architettura_draft"
+              "icon": "lucide-file",
+              "title": "Riunione 1"
             }
           }
         ]
@@ -186,10 +183,10 @@
       "bases:Crea nuova Base": false
     }
   },
-  "active": "fb7df48569fc1496",
+  "active": "1a1d4e0c4f3681d8",
   "lastOpenFiles": [
+    "Architettura_draft.canvas",
     "js/circle-iso.js",
-    "Riunione 1.md",
-    "Architettura_draft.canvas"
+    "Riunione 1.md"
   ]
 }

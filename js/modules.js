@@ -7,10 +7,6 @@
 
   /* ── HTML builders ─────────────────────────────────────────────────────── */
 
-  function sectionTitle(label) {
-    return `<div class="section-title">${label}</div>`;
-  }
-
   /** Slider row with label, range input, and live value display */
   function sliderRow(id, name, min, max, val, unit) {
     unit = unit || '';
@@ -50,7 +46,6 @@
   /* ── SEGMENTO ──────────────────────────────────────────────────────────── */
   function renderSegmento() {
     return `
-      ${sectionTitle('Distanza')}
       ${sliderRow('s-dmax', 'Max', 0, 360, 90, '°')}
       ${sliderRow('s-dmin', 'Min', 0, 360, 20, '°')}
     `;
@@ -59,7 +54,6 @@
   /* ── TRAVERSA ──────────────────────────────────────────────────────────── */
   function renderTraversa() {
     return `
-      ${sectionTitle('Comportamento')}
       ${segRow('Opposizione', 't-opp',
         [['origine','Origine'], ['talete','Talete']],
         'origine')}
@@ -69,7 +63,6 @@
   /* ── ALEATORIO ─────────────────────────────────────────────────────────── */
   function renderAleatorio() {
     return `
-      ${sectionTitle('Distribuzione')}
       ${sliderRow('a-spread', 'Spread', 0, 100, 30, '%')}
       ${segRow('Tipologia', 'a-tipo',
         [['random','Random'], ['drunk','Drunk'], ['poiss','Poiss']],

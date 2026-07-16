@@ -17,7 +17,7 @@
 
   var COS30 = Math.cos(Math.PI / 6), SIN30 = Math.sin(Math.PI / 6);
 
-  var viewRotationDeg = 0; // continuous camera yaw (any degree), applied before projecting
+  var viewRotationDeg = 100; // continuous camera yaw (any degree); 315 puts azimuth 0 at the front-facing vertex
   var isoActive = false;
   var dragState = null;         // azimuth: {type,arcIdx,span,cent} | height: {type,arcIdx,startY,startVal} | null
   var rotateDragState = null;   // {startX, startRotation} while dragging the background to orbit | null
