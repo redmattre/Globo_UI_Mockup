@@ -14,6 +14,7 @@
   /* ── Scene constants ───────────────────────────────────────────────────── */
   var CX = 100, CY = 110, SCALE = 70;
   var FLOOR_R = 1; // logical world radius of the azimuth ring (NOT circle.js's R=80px)
+  var DIRETTO_SHELL_R = FLOOR_R * 1.1; // "ghost" outer sphere for the Diretto static-spread indicator
 
   var COS30 = Math.cos(Math.PI / 6), SIN30 = Math.sin(Math.PI / 6);
 
@@ -287,6 +288,41 @@
     return '<path d="' + hitD + '" fill="none" stroke="transparent" stroke-width="22"/>' + fillParts.join('') + outline;
   }
 
+  /** Diretto mode has no readhead (sound is spread statically over the drawn
+   *  arcs, mirrors the flat view's own black semi-arcs) — this draws a black,
+   *  translucent "ghost" patch over the same azimuth/elevation range as the
+   *  arc's own surface, but on a slightly bigger sphere (DIRETTO_SHELL_R),
+   *  so it reads as a shell around the real surface rather than overlapping
+   *  it. Coarser grid than renderWallPatch (this is a passive indicator, not
+   *  draggable, so the extra precision isn't needed) — still decomposed into
+   *  small quads rather than one big polygon, for the same self-intersection
+   *  reason as renderWallPatch. pointer-events:none makes it fully inert to
+   *  clicks/hover, regardless of what else it's layered above or below. */
+  function renderDirettoShell(arc) {
+    var NAZ = 20, NEL = 6;
+    var azs = sampleAz(arc.left, arc.right, NAZ + 1);
+    var els = sampleEl(arc.heightMin, arc.heightMax, NEL + 1);
+
+    var grid = [];
+    for (var i = 0; i <= NEL; i++) {
+      var row = [];
+      for (var j = 0; j <= NAZ; j++) row.push(worldToScreen(azs[j], els[i], DIRETTO_SHELL_R));
+      grid.push(row);
+    }
+
+    var parts = [];
+    for (var i2 = 0; i2 < NEL; i2++) {
+      for (var j2 = 0; j2 < NAZ; j2++) {
+        var a = grid[i2][j2], b = grid[i2][j2 + 1], cc = grid[i2 + 1][j2 + 1], d = grid[i2 + 1][j2];
+        parts.push('<polygon points="' +
+          a.x.toFixed(2) + ',' + a.y.toFixed(2) + ' ' + b.x.toFixed(2) + ',' + b.y.toFixed(2) + ' ' +
+          cc.x.toFixed(2) + ',' + cc.y.toFixed(2) + ' ' + d.x.toFixed(2) + ',' + d.y.toFixed(2) +
+          '" fill="#0f0e0d11" stroke="none"/>');
+      }
+    }
+    return '<g pointer-events="none">' + parts.join('') + '</g>';
+  }
+
   function renderAzimuthHandles(arc, color) {
     var span   = arcSpan(arc.left, arc.right);
     var cent   = norm(arc.left + span / 2);
@@ -360,7 +396,21 @@
           renderAzimuthHandles(item.arc, color) + renderHeightHandles(item.arc, color);
       }
       parts.push('<g data-arc-hover="' + item.idx + '" style="cursor:pointer;">' + inner + '</g>');
+      // Diretto: no readhead — instead, a black ghost shell on a bigger sphere
+      // shows all statically-spread zones, same as the flat view's black
+      // semi-arcs. Kept outside the hoverable group and inert to clicks/hover.
+      if (cs.module === 'diretto') parts.push(renderDirettoShell(item.arc));
     });
+
+    // Position dot (the moving sound object) — hidden in Diretto, which has
+    // no movement/readhead to represent. Drawn on top of everything, same as
+    // the flat view (this scene never hides arcs by depth either — see
+    // renderWallPatch's no-culling rationale — so the dot follows suit).
+    if (cs.module !== 'diretto') {
+      var posP = worldToScreen(cs.positionAngle, 0, FLOOR_R);
+      parts.push('<circle cx="' + posP.x.toFixed(2) + '" cy="' + posP.y.toFixed(2) +
+        '" r="4.5" fill="#0F0E0D" stroke="#fff" stroke-width="1.3" pointer-events="none"/>');
+    }
 
     g.innerHTML = parts.join('');
   }
