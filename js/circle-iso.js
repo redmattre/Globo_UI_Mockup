@@ -23,6 +23,7 @@
   var dragState = null;         // azimuth: {type,arcIdx,span,cent} | height: {type,arcIdx,startY,startVal} | null
   var rotateDragState = null;   // {startX, startRotation} while dragging the background to orbit | null
   var ROTATE_SENSITIVITY = 0.6; // degrees of rotation per screen px of horizontal drag
+  var ORIGIN_DRAG_SENSITIVITY = 2; // degrees of span per screen px of vertical drag (origin handle)
 
   /* ── Geometry helpers (own copies — each file here is a self-contained
      module, same convention as rig.js duplicating its own math) ──────────── */
@@ -516,6 +517,12 @@
         type: type, arcIdx: arcIdx, startY: e.clientY,
         startVal: type === 'height-min' ? arc.heightMin : arc.heightMax,
       };
+    } else if (type === 'origin') {
+      dragState = {
+        type: type, arcIdx: arcIdx, startY: e.clientY,
+        startSpan: arcSpan(arc.left, arc.right),
+        cent: norm(arc.left + arcSpan(arc.left, arc.right) / 2),
+      };
     } else {
       dragState = {
         type: type, arcIdx: arcIdx,
@@ -559,6 +566,25 @@
       return;
     }
 
+    /* Origin (opening) handle: vertical scrubber (drag up = wider, down =
+       narrower), same technique as the height handles — not cursor-locked
+       to the handle's own position, which used to force the drag direction
+       to follow wherever the arc's centroid happened to point, and (in
+       this view) also required reasoning about the current camera
+       rotation to even recover the right direction at all. */
+    if (dragState.type === 'origin') {
+      var dyOrigin = dragState.startY - e.clientY;
+      var newSpanIso = Math.max(1, Math.min(359.5, Math.round(dragState.startSpan + dyOrigin * ORIGIN_DRAG_SENSITIVITY)));
+      var halfIso = newSpanIso / 2;
+      var nLIso = norm(dragState.cent - halfIso), nRIso = norm(dragState.cent + halfIso);
+      if (!wouldOverlapIso(dragState.arcIdx, nLIso, nRIso)) { arc.left = nLIso; arc.right = nRIso; }
+      if (window.ArcsAPI && window.AppBridge) {
+        cs.positionAngle = window.ArcsAPI.computePositionAngle(window.AppBridge.getReadheadPos());
+      }
+      requestDraw();
+      return;
+    }
+
     /* Azimuth handles: exact inversion of the floor-plane projection —
        same math circle.js's onMove already uses, just fed local (x,y)
        recovered from the projection instead of raw SVG screen coords. */
@@ -571,14 +597,6 @@
       var half = dragState.span / 2;
       var newL = norm(newCent - half), newR = norm(newCent + half);
       if (!wouldOverlapIso(dragState.arcIdx, newL, newR)) { arc.left = newL; arc.right = newR; }
-
-    } else if (dragState.type === 'origin') {
-      var centRad = toRad(dragState.cent);
-      var proj = xy.x * Math.sin(centRad) + xy.y * Math.cos(centRad);
-      var t = Math.max(0.005, proj / (FLOOR_R * 0.92));
-      var newSpan = Math.max(1, Math.min(359.5, t * t * 359.5));
-      var nL = norm(dragState.cent - newSpan / 2), nR = norm(dragState.cent + newSpan / 2);
-      if (!wouldOverlapIso(dragState.arcIdx, nL, nR)) { arc.left = nL; arc.right = nR; }
 
     } else if (dragState.type === 'trim-left') {
       var newA = floorAzimuthFromXY(xy.x, xy.y);

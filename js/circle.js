@@ -574,6 +574,7 @@
   var dragging   = null;
   var dragArcIdx = -1;
   var snap = {};
+  var ORIGIN_DRAG_SENSITIVITY = 2; // degrees of span per screen px of vertical drag
 
   function onDown(e) {
     var handle = e.target.closest('[data-handle]');
@@ -585,10 +586,11 @@
     if (!arc) return;
     dragging = handle.dataset.handle;
     snap = {
-      left:  arc.left,
-      right: arc.right,
-      span:  arcSpan(arc.left, arc.right),
-      cent:  centroidAngle(arc.left, arc.right),
+      left:   arc.left,
+      right:  arc.right,
+      span:   arcSpan(arc.left, arc.right),
+      cent:   centroidAngle(arc.left, arc.right),
+      startY: e.touches ? e.touches[0].clientY : e.clientY,
     };
   }
 
@@ -611,12 +613,14 @@
       }
 
     } else if (dragging === 'origin') {
-      var centRad = toRad(snap.cent);
-      var dx = sp.x - CX, dy = sp.y - CY;
-      var proj    = dx * Math.sin(centRad) + dy * (-Math.cos(centRad));
-      /* Inverse of sqrt mapping: t² * 359.5 recovers span */
-      var t       = Math.max(0.005, proj / (R * 0.92));
-      var newSpan = Math.max(1, Math.min(359.5, t * t * 359.5));
+      /* Vertical scrubber (drag up = wider, down = narrower), same
+         technique as the height handles — not cursor-locked to the
+         handle's own radial position, which used to force the drag
+         direction to follow wherever the arc's centroid happened to
+         point (horizontal for an east/west arc, diagonal otherwise). */
+      var curY = e.touches ? e.touches[0].clientY : e.clientY;
+      var dyOrigin = snap.startY - curY;
+      var newSpan  = Math.max(1, Math.min(359.5, Math.round(snap.span + dyOrigin * ORIGIN_DRAG_SENSITIVITY)));
       var nL      = norm(snap.cent - newSpan / 2);
       var nR      = norm(snap.cent + newSpan / 2);
       if (!wouldOverlap(dragArcIdx, nL, nR)) {

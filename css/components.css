@@ -181,7 +181,9 @@
 /* ── CIRCLE VIEW CONTROLS (bottom-right of the circle graphic: iso toggle) ───── */
 .circle-view-controls {
   position: absolute;
-  bottom: 8px;
+  /* Anchored to .circle-section (see the HTML comment) — 8px above the
+     readhead bar, the next real visual border below the circle. */
+  bottom: calc(var(--rh-h) + 8px);
   right: 8px;
   z-index: 5;
   display: flex;
@@ -422,13 +424,16 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 /* ── READHEAD BAR ───────────────────────────────────────────────────────────── */
 
 /* Letter toggle (left of the track) — switches which of the two readheads
-   is active. The second readhead (H) is a purely visual placeholder for now,
-   not wired to any position/parameter. */
+   is currently in control (the other one locks, see .rh-marker.dim). */
 .rh-switch-btn {
   flex-shrink: 0;
-  min-width: 18px;
-  padding: 2px 5px;
-  font-size: var(--sz-xs);
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 8px;
   font-weight: 700;
   color: var(--text-2);
   background: transparent;
@@ -501,6 +506,7 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   align-items: center;
   gap: 5px;
   flex-shrink: 0;
+  margin-left: 14px; /* clear breathing room from the readhead track */
 }
 
 .rh-ease-row,
@@ -512,8 +518,8 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 
 .rh-ease-select { position: relative; }
 .rh-ease-btn {
-  width: 24px;
-  height: 24px;
+  width: 14px;
+  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -530,7 +536,7 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 /* Closed button shows only the active curve as a small icon (text stays
    in the dropdown, where there's room for it) — same show/hide-by-attribute
    pattern as .mode-toggle's hemisphere/sphere icons. */
-.rh-ease-btn .ico { display: none; width: 14px; height: 14px; }
+.rh-ease-btn .ico { display: none; width: 9px; height: 9px; }
 .rh-ease-btn[data-ease="in"]     .ico-ease-in     { display: block; }
 .rh-ease-btn[data-ease="out"]    .ico-ease-out    { display: block; }
 .rh-ease-btn[data-ease="double"] .ico-ease-double { display: block; }

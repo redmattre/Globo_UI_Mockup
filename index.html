@@ -40,8 +40,7 @@
             <div class="spat-menu" id="spat-menu" hidden>
               <button class="spat-choice active"        data-spat="vbap">VBAP</button>
               <button class="spat-choice" data-spat="dbap">DBAP</button>
-              <button class="spat-choice"        data-spat="ambisonics">Ambi3rd</button>
-              <button class="spat-choice"        data-spat="ambisonics">Ambi7th</button>
+              <button class="spat-choice"        data-spat="ambisonics">AmbiV</button>
               <button class="spat-choice"        data-spat="soundscape">Direct</button>
             </div>
           </div>
@@ -84,18 +83,6 @@
               </svg>
             </div>
 
-            <!-- Aligned with .subgroup-select above: same right offset,
-                 anchored to .circle-area (full width) not .circle-svg-wrap
-                 (narrower, since .height-control shares this row). -->
-            <div class="circle-view-controls">
-              <button class="circle-view-btn" id="circle-iso-toggle" title="Vista isometrica (poi trascina la vista per ruotarla)">
-                <svg class="ico" viewBox="0 0 18 18" aria-hidden="true">
-                  <path d="M9 2 L15.5 5.5 V12.5 L9 16 L2.5 12.5 V5.5 Z" fill="none" stroke="currentColor" stroke-width="1.3"/>
-                  <path d="M9 2 V9 M9 9 L15.5 5.5 M9 9 L2.5 5.5" fill="none" stroke="currentColor" stroke-width="1.3"/>
-                </svg>
-              </button>
-            </div>
-
             <div class="height-control">
               <button class="mode-toggle" id="height-mode-toggle" data-mode="hemisphere" title="Semisfera (clic: sfera)" aria-label="Modalità altezza">
                 <svg class="ico ico-hemi" viewBox="0 0 18 18" aria-hidden="true">
@@ -118,6 +105,22 @@
               </div>
               <span class="height-val mono" id="height-val">0°</span>
             </div>
+          </div>
+
+          <!-- Sibling of .subgroup-select (both anchored to .circle-section),
+               not nested inside .circle-area — that box's own bottom edge
+               sits well above the readhead bar, since .arc-btn-bar-wrap in
+               between has no border/background of its own to mark where
+               the circle block actually ends visually. Anchoring here
+               instead, right above .readhead-bar, keeps the same 8px margin
+               feel as .subgroup-select has from the top. -->
+          <div class="circle-view-controls">
+            <button class="circle-view-btn" id="circle-iso-toggle" title="Vista isometrica (poi trascina la vista per ruotarla)">
+              <svg class="ico" viewBox="0 0 18 18" aria-hidden="true">
+                <path d="M9 2 L15.5 5.5 V12.5 L9 16 L2.5 12.5 V5.5 Z" fill="none" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M9 2 V9 M9 9 L15.5 5.5 M9 9 L2.5 5.5" fill="none" stroke="currentColor" stroke-width="1.3"/>
+              </svg>
+            </button>
           </div>
 
           <!-- Arc colour buttons — populated by arcs.js -->
@@ -297,8 +300,7 @@
             <div class="spat-menu" id="spat-menu-2" hidden>
               <button class="spat-choice active" data-spat="vbap">VBAP</button>
               <button class="spat-choice" data-spat="dbap">DBAP</button>
-              <button class="spat-choice" data-spat="ambisonics">Ambi3rd</button>
-              <button class="spat-choice" data-spat="ambisonics">Ambi7th</button>
+              <button class="spat-choice" data-spat="ambisonics">AmbiV</button>
               <button class="spat-choice" data-spat="soundscape">Direct</button>
             </div>
           </div>

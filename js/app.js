@@ -120,7 +120,7 @@
   const AUDIO_TYPES = [
     { key: 'dbap',       label: 'DBAP' },
     { key: 'vbap',       label: 'VBAP' },
-    { key: 'ambisonics', label: 'Ambisonics' },
+    { key: 'ambisonics', label: 'AmbiV' },
     { key: 'soundscape', label: 'Soundscape' },
   ];
 
@@ -137,9 +137,7 @@
       { id: 'au-fade',   name: 'Fade',   min: 0, max: 100, val: 40, unit: '%' },
     ],
     ambisonics: [
-      { id: 'au-order',       name: 'Order',       min: 1, max: 7,   val: 3,  unit: '' },
-      { id: 'au-width',       name: 'Width',       min: 0, max: 100, val: 80, unit: '%' },
-      { id: 'au-directivity', name: 'Directivity', min: 0, max: 100, val: 50, unit: '%' },
+      { id: 'au-order', name: 'Order', min: 1, max: 7, val: 3, unit: '' },
     ],
     soundscape: [
       { id: 'au-gain',    name: 'Gain',     min: 0, max: 100, val: 80, unit: '' },
