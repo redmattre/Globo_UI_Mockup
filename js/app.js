@@ -13,7 +13,7 @@
     secondaryOpen:   false,
     instanceNumber:  1,
     slaveGroup:      2,     // 0 = standalone; N = N diagonal lines shown
-    gsState: { audio: 'global', rig: 'stray', generali: 'global' },
+    gsState: { audio: 'global', rig: 'global', generali: 'global' },
     readheadPos:     0.,  // 0 to 1
     activeReadhead:  'A',    // which readhead's ease settings are shown/edited right now
     ease: {                  // separate ease curve per readhead — A actually drives
@@ -513,6 +513,10 @@
     }
   }
 
+  /** Snaps to the nearest 0.5° — same grid the azimuth handles in circle.js/
+   *  circle-iso.js use, so elevation can't be dragged/typed any finer either. */
+  function roundToHalf(deg) { return Math.round(deg * 2) / 2; }
+
   /* ═══════════════════════════════════════════════════════════════════════
      HEIGHT RANGE  (dual-handle vertical slider next to the circle — the
      currently selected arc's elevation MIN/MAX, same drag pattern as the
@@ -566,7 +570,7 @@
     function angleFromEvent(e) {
       const rect = track.getBoundingClientRect();
       const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
-      return Math.round(angleFromPct((y / rect.height) * 100));
+      return roundToHalf(angleFromPct((y / rect.height) * 100));
     }
 
     function moveTo(angle) {
@@ -601,11 +605,11 @@
       const b = bounds();
       window.ValueEditorAPI.open({
         label: which === 'min' ? 'Elevazione min (°)' : 'Elevazione max (°)',
-        value: Math.round(which === 'min' ? arc.heightMin : arc.heightMax),
+        value: roundToHalf(which === 'min' ? arc.heightMin : arc.heightMax),
         min: b.min, max: b.max,
         screenX: e.clientX, screenY: e.clientY,
         onApply(raw) {
-          const v = Math.max(b.min, Math.min(b.max, raw));
+          const v = Math.max(b.min, Math.min(b.max, roundToHalf(raw)));
           if (which === 'min') {
             if (v <= arc.heightMax) arc.heightMin = v; else { arc.heightMin = arc.heightMax; arc.heightMax = v; }
           } else {
@@ -686,9 +690,8 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
-     SUBGROUP SELECTOR  (mockup — which speaker subgroup(s) this spat drives;
-     multi-select, options are hardcoded, real subgroups will come from the
-     Rig page)
+     SUBGROUP SELECTOR  (which speaker subset(s), among the Rig tab's fixed
+     16 tags, this spat drives; multi-select — a preset can use several.)
   ════════════════════════════════════════════════════════════════════════ */
   function initSubgroupSelect() {
     const btn  = document.getElementById('subgroup-btn');
@@ -704,8 +707,7 @@
       btn.classList.add('open');
     }
     function updateTitle() {
-      const names = Array.from(menu.querySelectorAll('.subgroup-item.active'))
-        .map(i => i.textContent.trim());
+      const names = Array.from(menu.querySelectorAll('.subgroup-item.active')).map(i => i.textContent.trim());
       btn.title = names.length ? 'Subgroup: ' + names.join(', ') : 'Nessun subgroup selezionato';
     }
 
@@ -714,16 +716,18 @@
       menu.hidden ? open() : close();
     });
 
-    menu.querySelectorAll('.subgroup-item').forEach(item => {
-      item.addEventListener('click', () => {
-        item.classList.toggle('active');
-        updateTitle();
-        if (window.ArcsAPI) {
-          window.ArcsAPI.refreshSubgroupBadge();
-          // Persist the selection into the current pattern preset
-          window.ArcsAPI.autosave();
-        }
-      });
+    // Multi-select — a preset can drive several subsets at once, so a click
+    // just toggles that one item; the menu stays open for picking more.
+    menu.addEventListener('click', (e) => {
+      const item = e.target.closest('.subgroup-item');
+      if (!item) return;
+      item.classList.toggle('active');
+      updateTitle();
+      if (window.ArcsAPI) {
+        window.ArcsAPI.refreshSubgroupBadge();
+        // Persist the selection into the current pattern preset
+        window.ArcsAPI.autosave();
+      }
     });
 
     document.addEventListener('click', (e) => {
@@ -733,7 +737,40 @@
       if (e.key === 'Escape' && !menu.hidden) close();
     });
 
+    rebuildSubgroupMenu();
     updateTitle();
+  }
+
+  /** Rebuilds the subgroup dropdown from the Rig tab's tags that are
+   *  currently in use (window.RigAPI.getUsedSubsets()) — a tag nobody's
+   *  speakers are assigned to doesn't show up at all. Called on init and
+   *  again, via window.AppBridge.rebuildSubgroupMenu, every time a speaker
+   *  is retagged/added/removed on the Rig tab, since any of those can
+   *  change which tags are in use. */
+  function rebuildSubgroupMenu() {
+    const menu = document.getElementById('subgroup-menu');
+    const btn  = document.getElementById('subgroup-btn');
+    if (!menu || !window.RigAPI) return;
+
+    // An empty menu means this is the very first build (nothing rendered
+    // yet, so there's no real prior selection to preserve) — default to
+    // the first used tag (normally "Subset A", the one every speaker
+    // starts in). Any later rebuild still respects whatever the user
+    // actually had selected, including nothing at all.
+    const isFirstBuild = menu.children.length === 0;
+    const prevActive = new Set(
+      Array.from(menu.querySelectorAll('.subgroup-item.active')).map(i => i.dataset.subgroup)
+    );
+    const subsets = window.RigAPI.getUsedSubsets();
+    if (isFirstBuild && subsets.length > 0) prevActive.add(subsets[0].id);
+
+    menu.innerHTML = subsets.map(su =>
+      `<button class="subgroup-item${prevActive.has(su.id) ? ' active' : ''}" data-subgroup="${su.id}">${su.name}</button>`
+    ).join('');
+
+    const activeNames = subsets.filter(su => prevActive.has(su.id)).map(su => su.name);
+    if (btn) btn.title = activeNames.length ? 'Subgroup: ' + activeNames.join(', ') : 'Nessun subgroup selezionato';
+    if (window.ArcsAPI) window.ArcsAPI.refreshSubgroupBadge();
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -1106,6 +1143,7 @@
     setEaseChoice,
     getCurrentModule() { return state.currentModule; },
     switchModule,
+    rebuildSubgroupMenu,
   };
 
   /* ═══════════════════════════════════════════════════════════════════════

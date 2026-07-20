@@ -52,6 +52,14 @@
   function norm(a)  { return ((a % 360) + 360) % 360; }
   function toRad(d) { return d * Math.PI / 180; }
 
+  /** Snaps to the nearest 0.5° — every drag/typed angle in the app lands on
+   *  this grid, no finer movement is possible. Plain rounding only; azimuth
+   *  values (which wrap) need roundAzimuth below instead, since rounding
+   *  something like 359.8° can land exactly on 360, which is off the grid
+   *  this app actually uses ([0,360)) — norm() folds it back to 0. */
+  function roundToHalf(deg) { return Math.round(deg * 2) / 2; }
+  function roundAzimuth(deg) { return norm(roundToHalf(norm(deg))); }
+
   function pt(a, r) {
     r = (r === undefined) ? R : r;
     var rad = toRad(a);
@@ -199,8 +207,8 @@
       half = fitHalfSpanAt(c, NEW_ARC_HALF_SPAN, MIN_HALF_SPAN, idx);
       if (half === null) return false;
     }
-    arc.left       = norm(c - half);
-    arc.right      = norm(c + half);
+    arc.left       = roundAzimuth(c - half);
+    arc.right      = roundAzimuth(c + half);
     arc.heightMin  = 0;
     arc.heightMax  = 0;
     arc.heightMode = 'hemisphere';
@@ -605,8 +613,8 @@
     if (dragging === 'centroid') {
       var newCent = angleOf(sp.x, sp.y);
       var half    = snap.span / 2;
-      var newL    = norm(newCent - half);
-      var newR    = norm(newCent + half);
+      var newL    = roundAzimuth(newCent - half);
+      var newR    = roundAzimuth(newCent + half);
       if (!wouldOverlap(dragArcIdx, newL, newR)) {
         arc.left  = newL;
         arc.right = newR;
@@ -620,23 +628,23 @@
          point (horizontal for an east/west arc, diagonal otherwise). */
       var curY = e.touches ? e.touches[0].clientY : e.clientY;
       var dyOrigin = snap.startY - curY;
-      var newSpan  = Math.max(1, Math.min(359.5, Math.round(snap.span + dyOrigin * ORIGIN_DRAG_SENSITIVITY)));
-      var nL      = norm(snap.cent - newSpan / 2);
-      var nR      = norm(snap.cent + newSpan / 2);
+      var newSpan  = Math.max(1, Math.min(359.5, roundToHalf(snap.span + dyOrigin * ORIGIN_DRAG_SENSITIVITY)));
+      var nL      = roundAzimuth(snap.cent - newSpan / 2);
+      var nR      = roundAzimuth(snap.cent + newSpan / 2);
       if (!wouldOverlap(dragArcIdx, nL, nR)) {
         arc.left  = nL;
         arc.right = nR;
       }
 
     } else if (dragging === 'trim-left') {
-      var newA  = angleOf(sp.x, sp.y);
+      var newA  = roundAzimuth(angleOf(sp.x, sp.y));
       var newSp = arcSpan(newA, arc.right);
       if (newSp > 1 && newSp <= 359.5 && !wouldOverlap(dragArcIdx, newA, arc.right)) {
         arc.left = newA;
       }
 
     } else if (dragging === 'trim-right') {
-      var newA2  = angleOf(sp.x, sp.y);
+      var newA2  = roundAzimuth(angleOf(sp.x, sp.y));
       var newSp2 = arcSpan(arc.left, newA2);
       if (newSp2 > 1 && newSp2 <= 359.5 && !wouldOverlap(dragArcIdx, arc.left, newA2)) {
         arc.right = newA2;
@@ -681,7 +689,7 @@
     wrap.id = 'circle-handle-editor';
     wrap.innerHTML =
       '<span class="che-label">' + opts.label + '</span>' +
-      '<input class="che-input mono" type="number" min="' + opts.min +
+      '<input class="che-input mono" type="number" step="0.5" min="' + opts.min +
       '" max="' + opts.max + '" value="' + opts.value + '" autocomplete="off">';
 
     document.body.appendChild(wrap);
@@ -734,7 +742,7 @@
       return d > 180 ? d - 360 : d;   // maps 0-359 → -180..180
     }
     function toInternal(display) {
-      return ((Math.round(display) % 360) + 360) % 360;
+      return roundAzimuth(display);
     }
 
     var label, currentVal, minVal, maxVal;
@@ -747,7 +755,7 @@
       case 'centroid':
         label = 'Centroide (°)';        currentVal = toDisplay(cent);      minVal = -180; maxVal = 180; break;
       case 'origin':
-        label = 'Apertura (°)';         currentVal = Math.round(span);     minVal = 1;    maxVal = 359; break;
+        label = 'Apertura (°)';         currentVal = roundToHalf(span);    minVal = 1;    maxVal = 359.5; break;
       default: return;
     }
 
@@ -756,9 +764,9 @@
       screenX: screenX, screenY: screenY,
       onApply: function (raw) {
         if (handleType === 'origin') {
-          var newSpan = Math.max(1, Math.min(359, Math.round(raw)));
-          var nL = norm(cent - newSpan / 2);
-          var nR = norm(cent + newSpan / 2);
+          var newSpan = Math.max(1, Math.min(359.5, roundToHalf(raw)));
+          var nL = roundAzimuth(cent - newSpan / 2);
+          var nR = roundAzimuth(cent + newSpan / 2);
           if (!wouldOverlap(arcIdx, nL, nR)) { arc.left = nL; arc.right = nR; }
 
         } else {
@@ -771,8 +779,8 @@
               arc.right = deg;
           } else if (handleType === 'centroid') {
             var half = span / 2;
-            var cL = norm(deg - half);
-            var cR = norm(deg + half);
+            var cL = roundAzimuth(deg - half);
+            var cR = roundAzimuth(deg + half);
             if (!wouldOverlap(arcIdx, cL, cR)) { arc.left = cL; arc.right = cR; }
           }
         }

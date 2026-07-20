@@ -29,6 +29,12 @@
      module, same convention as rig.js duplicating its own math) ──────────── */
   function norm(a)  { return ((a % 360) + 360) % 360; }
   function toRad(d) { return d * Math.PI / 180; }
+
+  /** Same 0.5° snap grid as circle.js — see its own comment for why azimuth
+   *  (circular) needs the extra norm() wrap and elevation/span (linear,
+   *  clamped separately) doesn't. */
+  function roundToHalf(deg) { return Math.round(deg * 2) / 2; }
+  function roundAzimuth(deg) { return norm(roundToHalf(norm(deg))); }
   function arcSpan(left, right) { return norm(right - left); }
 
   function angleInArc(angle, left, right) {
@@ -551,7 +557,7 @@
     if (dragState.type === 'height-min' || dragState.type === 'height-max') {
       var dy = dragState.startY - e.clientY;
       var b  = heightBounds(arc.heightMode);
-      var next = Math.max(b.min, Math.min(b.max, Math.round(dragState.startVal + dy)));
+      var next = Math.max(b.min, Math.min(b.max, roundToHalf(dragState.startVal + dy)));
       if (dragState.type === 'height-min') {
         if (next <= arc.heightMax) arc.heightMin = next;
         else { arc.heightMin = arc.heightMax; arc.heightMax = next; dragState.type = 'height-max'; }
@@ -574,9 +580,9 @@
        rotation to even recover the right direction at all. */
     if (dragState.type === 'origin') {
       var dyOrigin = dragState.startY - e.clientY;
-      var newSpanIso = Math.max(1, Math.min(359.5, Math.round(dragState.startSpan + dyOrigin * ORIGIN_DRAG_SENSITIVITY)));
+      var newSpanIso = Math.max(1, Math.min(359.5, roundToHalf(dragState.startSpan + dyOrigin * ORIGIN_DRAG_SENSITIVITY)));
       var halfIso = newSpanIso / 2;
-      var nLIso = norm(dragState.cent - halfIso), nRIso = norm(dragState.cent + halfIso);
+      var nLIso = roundAzimuth(dragState.cent - halfIso), nRIso = roundAzimuth(dragState.cent + halfIso);
       if (!wouldOverlapIso(dragState.arcIdx, nLIso, nRIso)) { arc.left = nLIso; arc.right = nRIso; }
       if (window.ArcsAPI && window.AppBridge) {
         cs.positionAngle = window.ArcsAPI.computePositionAngle(window.AppBridge.getReadheadPos());
@@ -595,16 +601,16 @@
     if (dragState.type === 'centroid') {
       var newCent = floorAzimuthFromXY(xy.x, xy.y);
       var half = dragState.span / 2;
-      var newL = norm(newCent - half), newR = norm(newCent + half);
+      var newL = roundAzimuth(newCent - half), newR = roundAzimuth(newCent + half);
       if (!wouldOverlapIso(dragState.arcIdx, newL, newR)) { arc.left = newL; arc.right = newR; }
 
     } else if (dragState.type === 'trim-left') {
-      var newA = floorAzimuthFromXY(xy.x, xy.y);
+      var newA = roundAzimuth(floorAzimuthFromXY(xy.x, xy.y));
       var newSp = arcSpan(newA, arc.right);
       if (newSp > 1 && newSp <= 359.5 && !wouldOverlapIso(dragState.arcIdx, newA, arc.right)) arc.left = newA;
 
     } else if (dragState.type === 'trim-right') {
-      var newA2 = floorAzimuthFromXY(xy.x, xy.y);
+      var newA2 = roundAzimuth(floorAzimuthFromXY(xy.x, xy.y));
       var newSp2 = arcSpan(arc.left, newA2);
       if (newSp2 > 1 && newSp2 <= 359.5 && !wouldOverlapIso(dragState.arcIdx, arc.left, newA2)) arc.right = newA2;
     }
@@ -642,18 +648,18 @@
 
     /* ±180° display convention, same as the flat view's editor */
     function toDisplay(internal) { var d = norm(internal); return d > 180 ? d - 360 : d; }
-    function toInternal(display) { return norm(Math.round(display)); }
+    function toInternal(display) { return roundAzimuth(display); }
 
     var label, value, min, max;
     if (type === 'height-min' || type === 'height-max') {
       var b = heightBounds(arc.heightMode);
       label = type === 'height-min' ? 'Elevazione min (°)' : 'Elevazione max (°)';
-      value = Math.round(type === 'height-min' ? arc.heightMin : arc.heightMax);
+      value = roundToHalf(type === 'height-min' ? arc.heightMin : arc.heightMax);
       min = b.min; max = b.max;
     } else if (type === 'trim-left')  { label = 'Angolo sinistro (°)'; value = toDisplay(arc.left);  min = -180; max = 180; }
     else if (type === 'trim-right')   { label = 'Angolo destro (°)';   value = toDisplay(arc.right); min = -180; max = 180; }
     else if (type === 'centroid')     { label = 'Centroide (°)';       value = toDisplay(cent);      min = -180; max = 180; }
-    else if (type === 'origin')       { label = 'Apertura (°)';        value = Math.round(span);     min = 1;    max = 359; }
+    else if (type === 'origin')       { label = 'Apertura (°)';        value = roundToHalf(span);    min = 1;    max = 359.5; }
     else return;
 
     window.ValueEditorAPI.open({
@@ -662,7 +668,7 @@
       onApply: function (raw) {
         if (type === 'height-min' || type === 'height-max') {
           var b2 = heightBounds(arc.heightMode);
-          var v = Math.max(b2.min, Math.min(b2.max, raw));
+          var v = Math.max(b2.min, Math.min(b2.max, roundToHalf(raw)));
           if (type === 'height-min') {
             if (v <= arc.heightMax) arc.heightMin = v; else { arc.heightMin = arc.heightMax; arc.heightMax = v; }
           } else {
@@ -670,8 +676,8 @@
           }
           if (window.ArcsAPI) window.ArcsAPI.syncHeightSlider(arcIdx);
         } else if (type === 'origin') {
-          var newSpan = Math.max(1, Math.min(359, Math.round(raw)));
-          var nL = norm(cent - newSpan / 2), nR = norm(cent + newSpan / 2);
+          var newSpan = Math.max(1, Math.min(359.5, roundToHalf(raw)));
+          var nL = roundAzimuth(cent - newSpan / 2), nR = roundAzimuth(cent + newSpan / 2);
           if (!wouldOverlapIso(arcIdx, nL, nR)) { arc.left = nL; arc.right = nR; }
         } else {
           var deg = toInternal(raw);
@@ -681,7 +687,7 @@
             if (arcSpan(arc.left, deg) > 1 && !wouldOverlapIso(arcIdx, arc.left, deg)) arc.right = deg;
           } else if (type === 'centroid') {
             var half = span / 2;
-            var cL = norm(deg - half), cR = norm(deg + half);
+            var cL = roundAzimuth(deg - half), cR = roundAzimuth(deg + half);
             if (!wouldOverlapIso(arcIdx, cL, cR)) { arc.left = cL; arc.right = cR; }
           }
         }

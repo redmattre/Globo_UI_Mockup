@@ -129,7 +129,7 @@ ul { list-style: none; }
 }
 /* Draggable divider between circle section and params section */
 .panel-resize-handle {
-  width: 5px;
+  width: 3px;
   flex-shrink: 0;
   cursor: col-resize;
   background: var(--border);

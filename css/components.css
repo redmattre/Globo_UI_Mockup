@@ -130,6 +130,8 @@
   top: calc(100% + 4px);
   right: 0;
   min-width: 120px;
+  max-height: 260px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -153,29 +155,12 @@
   white-space: nowrap;
 }
 .subgroup-item:hover { background: var(--ink-fill); }
-
-.subgroup-check {
-  position: relative;
-  width: 11px;
-  height: 11px;
-  flex-shrink: 0;
-  border: 1.4px solid var(--border-strong);
-  border-radius: 2px;
-}
-.subgroup-item.active .subgroup-check {
-  background: var(--ink);
-  border-color: var(--ink);
-}
-.subgroup-item.active .subgroup-check::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: -0.5px;
-  width: 3px;
-  height: 6px;
-  border: solid #fff;
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(40deg);
+/* Single-select (only one subset drives the spat at a time) — same
+   highlight-only convention as .spat-choice.active/.rh-ease-choice.active,
+   no checkbox, since there's nothing to "check" once it's exclusive. */
+.subgroup-item.active {
+  background: var(--ink-fill);
+  font-weight: 600;
 }
 
 /* ── CIRCLE VIEW CONTROLS (bottom-right of the circle graphic: iso toggle) ───── */
@@ -846,6 +831,24 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 .speaker-item:last-child { border-bottom: none; }
 .speaker-item:hover    { background: var(--ink-fill); }
 .speaker-item.selected { background: var(--ink-fill); }
+.speaker-item.dragging { opacity: 0.4; }
+
+/* Grip handle — grabbing anywhere else on the row would fight with the
+   scrub inputs, the membership checkbox, and click-to-select. */
+.rig-drag-handle {
+  flex-shrink: 0;
+  width: 14px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  cursor: grab;
+}
+.rig-drag-handle:hover { color: var(--text-2); }
+.rig-drag-handle .ico { width: 12px; height: 12px; }
+.rig-drag-spacer { width: 14px; flex: 0 0 14px; }
+body.rig-reordering, body.rig-reordering * { cursor: grabbing !important; user-select: none; }
 
 /* Column header row above the list — same fixed widths as the rows, so the
    per-row inline numboxes line up under their label */
@@ -866,13 +869,14 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   letter-spacing: 0.03em;
   text-align: center;
 }
-.rig-check-spacer { width: 11px; flex: 0 0 11px; }
+.rig-tag-lbl { width: 20px; flex: 0 0 20px; font-size: var(--sz-xs); color: var(--text-3); text-transform: uppercase; letter-spacing: 0.03em; text-align: center; }
 
 .speaker-num {
   width: 18px;
   flex: 0 0 18px;
   font-size: var(--sz-xs);
   color: var(--text-3);
+  cursor: pointer;
 }
 .speaker-name {
   flex: 1 1 34px;
@@ -881,6 +885,18 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: text;
+}
+.speaker-name-input {
+  flex: 1 1 34px;
+  min-width: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text);
+  background: var(--white);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-sm);
+  padding: 1px 3px;
 }
 
 /* Inline position numboxes — all equally sized (Az/El/Dist/X/Y/Z), draggable
@@ -904,33 +920,65 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 .rig-scrub { cursor: ns-resize; }
 body.rig-scrubbing, body.rig-scrubbing * { cursor: ns-resize !important; user-select: none; }
 
-/* Custom checkbox — subset membership (same visual language as .subgroup-check) */
-.rig-check {
-  position: relative;
-  width: 11px;
-  height: 11px;
+/* Per-speaker subset tag — one of the 16 fixed letters (A-P), never more
+   than one at a time, so this is a plain button (click opens the picker,
+   see .rig-tag-picker), not a checkbox. Letters only, no color: color is
+   already spoken for by the zone/arc palette elsewhere in the app, and
+   reusing it here for an unrelated grouping would just be confusing. */
+.rig-tag {
+  width: 20px;
+  height: 16px;
   flex-shrink: 0;
-  border: 1.4px solid var(--border-strong);
-  border-radius: 2px;
+  font-size: var(--sz-xs);
+  color: var(--text-2);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  transition: background 0.1s, border-color 0.1s;
 }
-.rig-check.checked {
+.rig-tag:hover { background: var(--ink-fill); border-color: var(--text-3); }
+
+/* Popup opened by clicking a row's tag — compact letter grid (16 items
+   would make a tall vertical list like the app's other dropdowns), same
+   floating-panel chrome as .rh-ease-menu/.spat-menu. Targeted by #id, not
+   .class — the element in rig.js only ever gets an id (same convention as
+   circle.js's #circle-handle-editor popup). */
+#rig-tag-picker {
+  position: fixed;
+  z-index: 2000;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 5px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14);
+}
+.rig-tag-choice {
+  width: 24px;
+  height: 24px;
+  font-size: var(--sz-xs);
+  color: var(--text-2);
+  background: transparent;
+  border-radius: var(--r-sm);
+  transition: background 0.1s, color 0.1s;
+}
+.rig-tag-choice:hover { background: var(--ink-fill); }
+.rig-tag-choice.active {
   background: var(--ink);
-  border-color: var(--ink);
-}
-.rig-check.checked::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: -0.5px;
-  width: 3px;
-  height: 6px;
-  border: solid #fff;
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(40deg);
+  color: #fff;
+  font-weight: 700;
 }
 
-/* ── RIG TAB — left column: view toggle (isometric viz / subsets) ───────────── */
-.settings-left.rig-left  { flex: 0 0 260px; }
+/* ── RIG TAB — left column is always the isometric placement preview ────────── */
+.settings-left.rig-left {
+  flex: 0 0 260px; /* overridden inline once the divider is dragged, see rig.js */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* vertically centers the iso viz canvas */
+}
 .settings-right.rig-right { flex: 1; min-width: 0; }
 
 /* ── AUDIO TAB — same column spacing as the Rig tab ──────────────────────────── */
@@ -941,39 +989,17 @@ body.rig-scrubbing, body.rig-scrubbing * { cursor: ns-resize !important; user-se
 .settings-left.generali-left  { flex: 0 0 260px; }
 .settings-right.generali-right { flex: 1; min-width: 0; }
 
-.rig-view-toggle {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 10px;
-}
-.rig-view-btn {
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-2);
-  background: var(--white);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r);
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
-}
-.rig-view-btn .ico { width: 15px; height: 15px; }
-.rig-view-btn:hover { background: var(--ink-fill); }
-.rig-view-btn.active {
-  background: var(--ink);
-  color: #fff;
-  border-color: var(--ink);
-}
-
 /* Isometric placement preview */
 .rig-viz {
-  border: 1px solid var(--border);
+  width: 100%;
+  /* border: 1px solid var(--border); */
   border-radius: var(--r-md);
   background: var(--white);
   padding: 8px;
-  max-width: 260px;
+  max-width: 80vh;
 }
+.rig-viz svg { cursor: grab; }
+body.rig-viz-rotating, body.rig-viz-rotating * { cursor: grabbing !important; user-select: none; }
 .rig-dot, .rig-dot-label { cursor: pointer; }
 .rig-dot-label {
   font-size: 7px;
@@ -982,26 +1008,7 @@ body.rig-scrubbing, body.rig-scrubbing * { cursor: ns-resize !important; user-se
   user-select: none;
 }
 
-/* Subsets (groups) list — same entry-list visual language as .spat-item */
-.rig-subset-list { display: flex; flex-direction: column; gap: 3px; }
-.rig-subset-item {
-  padding: 6px 10px;
-  font-size: var(--sz-base);
-  border-radius: var(--r);
-  cursor: pointer;
-  color: var(--text-2);
-  transition: background 0.1s, color 0.1s;
-  border: 1px solid transparent;
-}
-.rig-subset-item:hover  { background: var(--ink-fill); }
-.rig-subset-item.active {
-  background: var(--ink-fill);
-  color: var(--ink);
-  border-color: var(--border-strong);
-  font-weight: 600;
-}
-
-/* Shared "+" / delete toolbar (speaker list, subset list) */
+/* Shared "+" / delete toolbar (speaker list) */
 .rig-toolbar {
   display: flex;
   gap: 4px;
