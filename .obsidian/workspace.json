@@ -20,8 +20,35 @@
               "icon": "lucide-file",
               "title": "Riunione 1"
             }
+          },
+          {
+            "id": "82e069a3c3ddb25b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Riunione 1.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Riunione 1"
+            }
+          },
+          {
+            "id": "a033cfa4bcadcc1a",
+            "type": "leaf",
+            "state": {
+              "type": "excalidraw",
+              "state": {
+                "file": "Excalidraw/Drawing 2026-07-19 14.25.38.excalidraw.md"
+              },
+              "icon": "excalidraw-icon",
+              "title": "Drawing 2026-07-19 14.25.38.excalidraw"
+            }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -180,13 +207,20 @@
       "daily-notes:Apri nota del giorno": false,
       "templates:Inserisci modello": false,
       "command-palette:Apri riquadro comandi": false,
-      "bases:Crea nuova Base": false
+      "bases:Crea nuova Base": false,
+      "obsidian-excalidraw-plugin:New drawing": false
     }
   },
-  "active": "1a1d4e0c4f3681d8",
+  "active": "a033cfa4bcadcc1a",
   "lastOpenFiles": [
+    "Excalidraw/Drawing 2026-07-19 14.25.28.excalidraw.md",
+    "Excalidraw/Drawing 2026-07-19 14.25.38.excalidraw.md",
+    "Riunione 1.md",
+    "Senza nome.md",
+    "Excalidraw",
+    "Senza nome.canvas",
+    "Globo_files_18giu2026.pdf",
     "Architettura_draft.canvas",
-    "js/circle-iso.js",
-    "Riunione 1.md"
+    "js/circle-iso.js"
   ]
 }

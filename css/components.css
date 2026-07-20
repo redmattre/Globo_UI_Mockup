@@ -486,17 +486,14 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 .rh-marker:active { cursor: grabbing; }
 .rh-marker:hover  { border-top-color: #000; }
 
-/* Non-active readhead: dimmed, lighter tip — swapped via the A/H switch */
+/* Non-active readhead: dimmed, lighter tip, locked — swapped via the A/H
+   switch. Only the active one can be grabbed or moved via the track. */
 .rh-marker.dim {
   border-top-color: var(--border-strong);
   opacity: 0.55;
+  cursor: not-allowed;
 }
-
-/* Second readhead (H) — placeholder only, not draggable yet */
-.rh-marker-h {
-  pointer-events: none;
-  cursor: default;
-}
+.rh-marker.dim:hover { border-top-color: var(--border-strong); }
 
 .rh-controls {
   display: flex;
@@ -515,18 +512,29 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 
 .rh-ease-select { position: relative; }
 .rh-ease-btn {
-  font-family: var(--font-mono);
-  font-size: var(--sz-xs);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-2);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 2px 6px;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
 }
 .rh-ease-btn:hover { background: var(--ink-fill); }
 .rh-ease-btn.open  { background: var(--ink-fill); border-color: var(--accent); }
+
+/* Closed button shows only the active curve as a small icon (text stays
+   in the dropdown, where there's room for it) — same show/hide-by-attribute
+   pattern as .mode-toggle's hemisphere/sphere icons. */
+.rh-ease-btn .ico { display: none; width: 14px; height: 14px; }
+.rh-ease-btn[data-ease="in"]     .ico-ease-in     { display: block; }
+.rh-ease-btn[data-ease="out"]    .ico-ease-out    { display: block; }
+.rh-ease-btn[data-ease="double"] .ico-ease-double { display: block; }
+.rh-ease-btn[data-ease="random"] .ico-ease-random { display: block; }
 
 .rh-ease-menu {
   position: absolute;
@@ -1130,12 +1138,6 @@ body.rig-scrubbing, body.rig-scrubbing * { cursor: ns-resize !important; user-se
 .arc-btn.selected {
   box-shadow: 0 0 0 2px var(--text);
   opacity: 1;
-}
-
-/* Locked = non ancora creata; si crea solo con il "+" sul cerchio */
-.arc-btn.locked {
-  opacity: 0.28;
-  pointer-events: none;
 }
 
 /* ── Pattern presets (lives inside panel-header) ──────────────────────────── */

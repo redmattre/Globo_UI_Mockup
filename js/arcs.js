@@ -108,7 +108,8 @@
       btn.dataset.arc = i;
       btn.style.setProperty('--arc-color', color);
       btn.textContent = i + 1;
-      // Single click = toggle active state (only once the zone has been created)
+      // Single click toggles the zone on/off — every slot always exists, see
+      // circle.js's isArcOn/activateArc/deactivateArc.
       btn.addEventListener('click', () => toggleArc(i));
       bar.appendChild(btn);
     });
@@ -118,29 +119,33 @@
 
   function updateArcButtons() {
     const cs = window.CircleState;
-    if (!cs) return;
+    if (!cs || !window.CircleAPI) return;
     document.querySelectorAll('.arc-btn').forEach(function (btn) {
-      const i = parseInt(btn.dataset.arc, 10);
-      const arc = cs.arcs[i];
-      const created = !!(arc && arc.created);
-      btn.classList.toggle('active',   !!(arc && arc.active));
+      const i  = parseInt(btn.dataset.arc, 10);
+      const on = window.CircleAPI.isArcOn(cs.arcs[i]);
+      btn.classList.toggle('active', on);
       // Ring only tracks live hover on the circle — no fallback to last-selected
       btn.classList.toggle('selected', cs.hovered >= 0 && i === cs.hovered);
-      btn.classList.toggle('locked',   !created);
-      btn.title = 'Arco ' + (i + 1) + ' — ' + (created
-        ? 'click: accendi / spegni'
-        : 'crea questa zona cliccando sul cerchio');
+      btn.title = 'Arco ' + (i + 1) + ' — ' + (on ? 'click: spegni' : 'click: accendi');
     });
   }
 
+  /** Turning on auto-places the zone in the largest free gap (no cursor
+   *  position available from a button click, unlike clicking the circle
+   *  directly); turning off collapses it back to zero width. Both paths —
+   *  button and circle click — end up calling the exact same activateArc. */
   function toggleArc(idx) {
-    if (!window.CircleState) return;
+    if (!window.CircleState || !window.CircleAPI) return;
     var arc = window.CircleState.arcs[idx];
-    if (!arc || !arc.created) return;
-    arc.active = !arc.active;
+    if (!arc) return;
+    if (window.CircleAPI.isArcOn(arc)) {
+      window.CircleAPI.deactivateArc(idx);
+    } else if (!window.CircleAPI.activateArc(idx)) {
+      return; // no room left anywhere on the circle
+    }
     updateArcButtons();
     autosave();
-    if (window.CircleAPI) window.CircleAPI.draw();
+    window.CircleAPI.draw();
     var rpos = (window.AppBridge && window.AppBridge.getReadheadPos) ? window.AppBridge.getReadheadPos() : 0.4;
     applyReadhead(rpos);
   }
@@ -168,8 +173,6 @@
     var arcs = srcLo.arcs.map(function (arcA, idx) {
       var arcB = srcHi.arcs[idx];
       return {
-        active:     t < 0.5 ? arcA.active     : arcB.active,
-        created:    t < 0.5 ? arcA.created    : arcB.created,
         left:       lerpAngle(arcA.left,  arcB.left,  t),
         right:      lerpAngle(arcA.right, arcB.right, t),
         heightMin:  arcA.heightMin + (arcB.heightMin - arcA.heightMin) * t,
@@ -489,7 +492,7 @@
     if (!cs) return 0;
 
     var active = cs.arcs
-      .filter(function (a) { return a.active; })
+      .filter(function (a) { return window.CircleAPI && window.CircleAPI.isArcOn(a); })
       .map(function (a) { return { left: a.left, right: a.right }; })
       .sort(function (a, b) { return a.left - b.left; });
 

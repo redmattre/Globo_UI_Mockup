@@ -20,20 +20,27 @@
   ];
 
   /* ── State ──────────────────────────────────────────────────────────────── */
+  // There is no separate "created" flag: every slot always exists, and is
+  // simply on or off. Off IS zero span (left === right) — there's no other
+  // state to track, so nothing can ever get out of sync. Turning a slot on
+  // (via the circle's "+" cursor or its own button, see activateArc below)
+  // always places it fresh; turning it off (deactivateArc) always collapses
+  // it back to zero width. See isArcOn().
   window.CircleState = {
     arcs: [
-      { active: true,  created: true,  left: 0, right:  359.9, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left:  60, right: 105, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 105, right: 150, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 150, right: 195, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 195, right: 240, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 240, right: 285, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 285, right: 315, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { active: false, created: false, left: 315, right: 330, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { left: 0, right: 359.9, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
     ],
     selected:  0,    // last interacted arc (height slider / patterns)
     hovered:  -1,    // arc index the mouse is over right now (-1 = none)
     positionAngle: 15,
+    heightReadPos: 0,  // 0–1: H readhead's position within whichever arc's height range the sound object is azimuthally inside right now
     module:        'perimetro',
     ghostOpposition: 'origine',
   };
@@ -76,20 +83,26 @@
            angleInArc(norm(r2 - 0.5), l1, r1);
   }
 
+  /** An arc is "on" purely by having nonzero span — see the State comment
+   *  above. Same 0.5° tolerance as angleInArc's own zero-span guard. */
+  function isArcOn(arc) {
+    return !!arc && arcSpan(arc.left, arc.right) > 0.5;
+  }
+
   function wouldOverlap(arcIdx, newLeft, newRight) {
     var arcs = window.CircleState.arcs;
     for (var i = 0; i < arcs.length; i++) {
-      if (i === arcIdx || !arcs[i].active) continue;
+      if (i === arcIdx || !isArcOn(arcs[i])) continue;
       if (arcsOverlap(newLeft, newRight, arcs[i].left, arcs[i].right)) return true;
     }
     return false;
   }
 
-  /* ── Zone creation (click on an empty slot) ─────────────────────────────── */
-  function firstUncreatedArcIndex() {
+  /* ── Zone activation (click on an empty slot, or the arc's own button) ──── */
+  function firstOffArcIndex() {
     var arcs = window.CircleState.arcs;
     for (var i = 0; i < arcs.length; i++) {
-      if (!arcs[i].created) return i;
+      if (!isArcOn(arcs[i])) return i;
     }
     return -1;
   }
@@ -112,6 +125,93 @@
       if (fits(mid)) lo = mid; else hi = mid;
     }
     return lo;
+  }
+
+  /** Best currently-free gap between ON arcs (wrap-aware), for auto-placing
+   *  a zone activated from its own button — unlike a circle click, there's
+   *  no cursor position to place it at. Whole circle free → dead center.
+   *
+   *  Each candidate gap (the space between two angularly-consecutive ON
+   *  arcs) is validated with the SAME fitHalfSpanAt used everywhere else,
+   *  rather than trusted from raw angle subtraction — two neighbors can end
+   *  up very slightly overlapping (e.g. a preset morph interpolates left/
+   *  right independently and doesn't itself enforce non-overlap), and a
+   *  naive `next.left - cur.right` then wraps around into a bogus ~360°
+   *  "gap" that actually sits inside a different, already-occupied arc.
+   *  Validating every candidate for real, and only ever returning one that
+   *  fitHalfSpanAt actually confirmed, means a phantom gap like that simply
+   *  fails its own check and gets skipped — instead of winning by looking
+   *  huge and silently blocking every genuine (small) gap from ever being
+   *  picked, which is what let clicking an available slot's button do
+   *  nothing even though real free space existed elsewhere on the circle.
+   *
+   *  Among the validated candidates, prefer the SMALLEST gap that fits a
+   *  full-size default zone without shrinking — the single largest gap is
+   *  very often one big leftover swath far from where the other zones
+   *  actually are, so always jumping there reads as "nothing happened" to
+   *  someone watching the space between their existing zones. Only if none
+   *  fit the full default do we fall back to whichever gives the biggest
+   *  achievable span, so the new zone shrinks as little as possible. */
+  function bestGapPlacement(excludeIdx) {
+    var arcs = window.CircleState.arcs;
+    var on = [];
+    arcs.forEach(function (a, i) {
+      if (i !== excludeIdx && isArcOn(a)) on.push({ left: a.left, right: a.right });
+    });
+    if (on.length === 0) return { center: 0, half: NEW_ARC_HALF_SPAN };
+    on.sort(function (a, b) { return a.left - b.left; });
+
+    var candidates = [];
+    for (var i = 0; i < on.length; i++) {
+      var cur     = on[i];
+      var next    = on[(i + 1) % on.length];
+      var gapSize = norm(next.left - cur.right);
+      var center  = norm(cur.right + gapSize / 2);
+      var half    = fitHalfSpanAt(center, NEW_ARC_HALF_SPAN, MIN_HALF_SPAN, excludeIdx);
+      if (half !== null) candidates.push({ center: center, half: half, gapSize: gapSize });
+    }
+    if (candidates.length === 0) return null; // no room anywhere, verified
+
+    var full = candidates.filter(function (c) { return c.half >= NEW_ARC_HALF_SPAN - 0.01; });
+    if (full.length > 0) {
+      full.sort(function (a, b) { return a.gapSize - b.gapSize; });
+      return full[0];
+    }
+    candidates.sort(function (a, b) { return b.half - a.half; });
+    return candidates[0];
+  }
+
+  /** Turns a slot on: places it at `center` (an explicit angle, e.g. from a
+   *  circle click) or, if omitted, in the best free gap (button click, see
+   *  bestGapPlacement) — always at the default span/height, exactly like a
+   *  fresh zone. Returns false (no-op) if there's no room at all. */
+  function activateArc(idx, center) {
+    var arc = window.CircleState.arcs[idx];
+    if (!arc) return false;
+    var c, half;
+    if (center === undefined || center === null) {
+      var placement = bestGapPlacement(idx);
+      if (!placement) return false;
+      c = placement.center;
+      half = placement.half;
+    } else {
+      c = norm(center);
+      half = fitHalfSpanAt(c, NEW_ARC_HALF_SPAN, MIN_HALF_SPAN, idx);
+      if (half === null) return false;
+    }
+    arc.left       = norm(c - half);
+    arc.right      = norm(c + half);
+    arc.heightMin  = 0;
+    arc.heightMax  = 0;
+    arc.heightMode = 'hemisphere';
+    return true;
+  }
+
+  /** Turns a slot off: collapses it to zero span in place — see isArcOn(). */
+  function deactivateArc(idx) {
+    var arc = window.CircleState.arcs[idx];
+    if (!arc) return;
+    arc.right = arc.left;
   }
 
   /* ── SVG element factory ────────────────────────────────────────────────── */
@@ -215,7 +315,7 @@
     /* 3 ── Ghost arc (Traversa mode — only while an arc is actively hovered) */
     if (cs.module === 'traversa' && hovIdx >= 0) {
       var refArc = cs.arcs[hovIdx];
-      if (refArc && refArc.active) {
+      if (refArc && isArcOn(refArc)) {
         var refIdx = hovIdx;
         var refCol = window.ARC_COLORS[refIdx];
         var gL, gR;
@@ -267,7 +367,7 @@
             - closest('[data-arc-hover]') works for hover detection from any child
             - closest('[data-handle]')   works for drag from any handle child      */
     cs.arcs.forEach(function (arc, i) {
-      if (!arc.active) return;   // inactive arcs are completely hidden
+      if (!isArcOn(arc)) return;   // zero-span arcs ("off") are completely hidden
 
       var col   = window.ARC_COLORS[i];
       var isHov = (i === hovIdx);
@@ -347,7 +447,7 @@
             every active arc (sound is spread there, nothing moves) */
     if (cs.module === 'diretto') {
       cs.arcs.forEach(function (arc) {
-        if (!arc.active) return;
+        if (!isArcOn(arc)) return;
         svg.appendChild(el('path', {
           d: arcPath(arc.left, arc.right, R + 7), fill: 'none',
           stroke: '#0F0E0D', 'stroke-width': '2',
@@ -399,14 +499,14 @@
     var cs = window.CircleState;
 
     // Ghost "+": anywhere inside the circle that isn't an active arc, as long
-    // as a slot is still available to be created (geometry decided on click).
+    // as a slot is still off (geometry decided on click — see activateArc).
     var sp        = toSVG(svg, e);
     var dist      = Math.hypot(sp.x - CX, sp.y - CY);
     var prevGhost = ghostArcIdx;
     ghostArcIdx = -1;
     ghostPoint  = null;
     if (newHov === -1 && dist <= R) {
-      var idx = firstUncreatedArcIndex();
+      var idx = firstOffArcIndex();
       if (idx >= 0) { ghostArcIdx = idx; ghostPoint = { x: sp.x, y: sp.y }; }
     }
 
@@ -440,25 +540,16 @@
     if (needDraw) requestDraw();
   }
 
-  /* ── Click on empty space: create + activate a new zone under the cursor ── */
+  /* ── Click on empty space: activate the next off zone under the cursor ─── */
   function onSVGClick() {
     if (dragging !== null || ghostArcIdx < 0 || !ghostPoint) return;
     var cs  = window.CircleState;
     var arc = cs.arcs[ghostArcIdx];
-    if (!arc || arc.created) return;
+    if (!arc || isArcOn(arc)) return;
 
     var idx    = ghostArcIdx;
     var center = angleOf(ghostPoint.x, ghostPoint.y);
-    var half   = fitHalfSpanAt(center, NEW_ARC_HALF_SPAN, MIN_HALF_SPAN, idx);
-    if (half === null) return; // nessuno spazio disponibile qui
-
-    arc.left       = norm(center - half);
-    arc.right      = norm(center + half);
-    arc.heightMin  = 0;
-    arc.heightMax  = 0;
-    arc.heightMode = 'hemisphere';
-    arc.active     = true;
-    arc.created    = true;
+    if (!activateArc(idx, center)) return; // nessuno spazio disponibile qui
 
     cs.selected = idx;
     cs.hovered  = idx;
@@ -731,6 +822,14 @@
     },
     setModule: function (mod) { window.CircleState.module = mod; window.CircleAPI.draw(); },
     getState:  function () { return window.CircleState; },
+    // Arc lifecycle — see the State comment above: there is no "created"
+    // flag, a slot is on iff it has nonzero span. arcs.js's button bar
+    // drives these directly (activateArc with no center auto-picks the
+    // largest free gap); this file's own click-on-circle handler uses the
+    // same activateArc with an explicit center.
+    isArcOn:      isArcOn,
+    activateArc:  activateArc,
+    deactivateArc: deactivateArc,
   };
 
   document.addEventListener('DOMContentLoaded', init);

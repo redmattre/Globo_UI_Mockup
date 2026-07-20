@@ -135,13 +135,18 @@
               <div class="rh-track" id="rh-track">
                 <div class="rh-dots" id="rh-dots"></div>
                 <div class="rh-marker" id="rh-marker" data-readhead="A" title="Testina di lettura A"></div>
-                <div class="rh-marker rh-marker-h" id="rh-marker-h" data-readhead="H" style="left:62%" title="Testina di lettura H"></div>
+                <div class="rh-marker" id="rh-marker-h" data-readhead="H" title="Testina di lettura H (altezza)"></div>
               </div>
             </div>
 
             <div class="rh-controls">
               <div class="rh-ease-select" id="rh-ease-select">
-                <button class="rh-ease-btn mono" id="rh-ease-btn">ease in</button>
+                <button class="rh-ease-btn" id="rh-ease-btn" data-ease="in" title="Curva di easing">
+                  <svg class="ico ico-ease-in" viewBox="0 0 18 18" aria-hidden="true"><path d="M3,14 C11,14 15,10 15,4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  <svg class="ico ico-ease-out" viewBox="0 0 18 18" aria-hidden="true"><path d="M3,14 C3,8 7,4 15,4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  <svg class="ico ico-ease-double" viewBox="0 0 18 18" aria-hidden="true"><path d="M3,14 C9,14 9,4 15,4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  <svg class="ico ico-ease-random" viewBox="0 0 18 18" aria-hidden="true"><circle cx="4" cy="5" r="1.4" fill="currentColor"/><circle cx="10" cy="12" r="1.4" fill="currentColor"/><circle cx="14" cy="6" r="1.4" fill="currentColor"/><circle cx="6" cy="13" r="1.4" fill="currentColor"/></svg>
+                </button>
                 <div class="rh-ease-menu" id="rh-ease-menu" hidden>
                   <button class="rh-ease-choice active" data-ease="in">ease in</button>
                   <button class="rh-ease-choice"        data-ease="out">ease out</button>

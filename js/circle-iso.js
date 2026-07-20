@@ -40,13 +40,37 @@
     return angleInArc(norm(l1 + 0.5), l2, r2) || angleInArc(norm(r1 - 0.5), l2, r2) ||
            angleInArc(norm(l2 + 0.5), l1, r1) || angleInArc(norm(r2 - 0.5), l1, r1);
   }
+
+  /** An arc is "on" purely by having nonzero span — there's no separate
+   *  created/active flag (see circle.js's State comment for the full
+   *  rationale); "off" is defined as zero width, nothing else to check. */
+  function isArcOn(arc) {
+    return !!arc && arcSpan(arc.left, arc.right) > 0.5;
+  }
+
   function wouldOverlapIso(arcIdx, newLeft, newRight) {
     var arcs = window.CircleState.arcs;
     for (var i = 0; i < arcs.length; i++) {
-      if (i === arcIdx || !arcs[i].active) continue;
+      if (i === arcIdx || !isArcOn(arcs[i])) continue;
       if (arcsOverlap(newLeft, newRight, arcs[i].left, arcs[i].right)) return true;
     }
     return false;
+  }
+
+  /** Inclusive containment (unlike angleInArc above, which deliberately
+   *  excludes the endpoints for overlap detection) — finds which active arc
+   *  the sound object currently sits in azimuthally, so the H readhead knows
+   *  whose heightMin/heightMax range to read its 0–1 position against. */
+  function arcIndexForAngle(angle) {
+    var arcs = window.CircleState.arcs;
+    for (var i = 0; i < arcs.length; i++) {
+      var a = arcs[i];
+      if (!isArcOn(a)) continue;
+      var span = arcSpan(a.left, a.right);
+      var d = norm(angle - a.left);
+      if (d <= span + 0.01) return i;
+    }
+    return -1;
   }
 
   /** Azimuth (deg, 0=north/clockwise — same convention as circle.js's angleOf),
@@ -280,7 +304,7 @@
 
     // Wide invisible hit-band along the patch's vertical center — guarantees
     // clickability even when heightMin===heightMax (zero-area patch), e.g.
-    // right after an arc is first created on the flat view.
+    // right after an arc is activated (always starts flat, see activateArc).
     var midEl  = (arc.heightMin + arc.heightMax) / 2;
     var hitPts = sampleAz(arc.left, arc.right, 13).map(function (a) { return worldToScreen(a, midEl, FLOOR_R); });
     var hitD   = 'M ' + hitPts.map(function (p) { return p.x.toFixed(2) + ' ' + p.y.toFixed(2); }).join(' L ');
@@ -373,7 +397,7 @@
     // Painter's algorithm: farther arcs drawn first, nearer ones on top
     var active = [];
     cs.arcs.forEach(function (arc, i) {
-      if (!arc.active) return;
+      if (!isArcOn(arc)) return;
       var cent  = norm(arc.left + arcSpan(arc.left, arc.right) / 2);
       var midEl = (arc.heightMin + arc.heightMax) / 2;
       var c = polarToCartesian(norm(cent - viewRotationDeg), midEl, FLOOR_R);
@@ -406,8 +430,15 @@
     // no movement/readhead to represent. Drawn on top of everything, same as
     // the flat view (this scene never hides arcs by depth either — see
     // renderWallPatch's no-culling rationale — so the dot follows suit).
+    // Its elevation comes from the H readhead: a 0–1 position through the
+    // heightMin/heightMax range of whichever arc the dot is currently inside
+    // azimuthally (falls back to the floor if it isn't inside any arc).
     if (cs.module !== 'diretto') {
-      var posP = worldToScreen(cs.positionAngle, 0, FLOOR_R);
+      var curArcIdx = arcIndexForAngle(cs.positionAngle);
+      var curArc    = curArcIdx >= 0 ? cs.arcs[curArcIdx] : null;
+      var hPct      = cs.heightReadPos || 0;
+      var posEl     = curArc ? (curArc.heightMin + hPct * (curArc.heightMax - curArc.heightMin)) : 0;
+      var posP = worldToScreen(cs.positionAngle, posEl, FLOOR_R);
       parts.push('<circle cx="' + posP.x.toFixed(2) + '" cy="' + posP.y.toFixed(2) +
         '" r="4.5" fill="#0F0E0D" stroke="#fff" stroke-width="1.3" pointer-events="none"/>');
     }

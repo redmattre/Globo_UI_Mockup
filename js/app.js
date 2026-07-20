@@ -15,8 +15,11 @@
     slaveGroup:      2,     // 0 = standalone; N = N diagonal lines shown
     gsState: { audio: 'global', rig: 'stray', generali: 'global' },
     readheadPos:     0.,  // 0 to 1
-    easeType:        'in',   // 'in' | 'out' | 'double'
-    easeIntensity:   0,      // 0–100
+    activeReadhead:  'A',    // which readhead's ease settings are shown/edited right now
+    ease: {                  // separate ease curve per readhead — A actually drives
+      A: { type: 'in', intensity: 0 },   // playback easing; H's is stored for later use
+      H: { type: 'in', intensity: 0 },
+    },
     playing:         false,
   };
 
@@ -316,17 +319,38 @@
     }
   }
 
-  /** Reposition density dots to reflect current ease type + intensity. */
+  /** Reposition density dots to reflect the active readhead's ease type + intensity. */
   function updateDots() {
     const dotsEl = document.getElementById('rh-dots');
     if (!dotsEl) return;
     const dots = dotsEl.querySelectorAll('.rh-dot');
     const N    = dots.length;
+    const ease = state.ease[state.activeReadhead];
     dots.forEach((dot, i) => {
       const rawT  = (i + 0.5) / N;
-      const eased = applyEase(rawT, state.easeType, state.easeIntensity);
+      const eased = applyEase(rawT, ease.type, ease.intensity);
       dot.style.left = (eased * 100).toFixed(2) + '%';
     });
+  }
+
+  /** Refresh the ease button/menu/force-slider/dots to reflect whichever
+   *  readhead (A or H) is currently active — each keeps its own ease
+   *  settings, so switching the A/H toggle swaps which one is shown here. */
+  function syncEaseUIToActiveReadhead() {
+    const ease = state.ease[state.activeReadhead];
+    const btn  = document.getElementById('rh-ease-btn');
+    const menu = document.getElementById('rh-ease-menu');
+    if (btn) btn.dataset.ease = ease.type;
+    if (menu) {
+      menu.querySelectorAll('.rh-ease-choice').forEach(c => {
+        c.classList.toggle('active', c.dataset.ease === ease.type);
+      });
+    }
+    const forceEl    = document.getElementById('rh-force');
+    const forceValEl = document.getElementById('rh-force-val');
+    if (forceEl)    forceEl.value = ease.intensity;
+    if (forceValEl) forceValEl.textContent = ease.intensity + '%';
+    updateDots();
   }
 
   function initReadhead() {
@@ -337,18 +361,41 @@
       updateDots();
     }
 
-    const track  = document.getElementById('rh-track');
-    const marker = document.getElementById('rh-marker');
+    const track   = document.getElementById('rh-track');
+    const marker  = document.getElementById('rh-marker');
+    const markerH = document.getElementById('rh-marker-h');
     if (!track || !marker) return;
+
+    // A/H switch — which readhead is currently in control. The other one is
+    // locked: neither a direct grab on its marker nor a click on the empty
+    // track background will move it until it's switched back in.
+    const switchBtn = document.getElementById('rh-switch-btn');
+    function updateActiveReadheadVisual() {
+      marker.classList.toggle('dim', state.activeReadhead !== 'A');
+      if (markerH) markerH.classList.toggle('dim', state.activeReadhead !== 'H');
+    }
+    updateActiveReadheadVisual();
+    syncEaseUIToActiveReadhead();
+    if (switchBtn) {
+      switchBtn.addEventListener('click', () => {
+        state.activeReadhead = state.activeReadhead === 'A' ? 'H' : 'A';
+        switchBtn.textContent = state.activeReadhead;
+        updateActiveReadheadVisual();
+        syncEaseUIToActiveReadhead();
+      });
+    }
 
     // Place marker at initial position
     setReadheadPos(state.readheadPos);
 
-    // Drag
+    // Drag — azimuth readhead (A)
     let dragging = false;
-    marker.addEventListener('mousedown', e => { dragging = true; e.preventDefault(); });
+    marker.addEventListener('mousedown', e => {
+      if (state.activeReadhead !== 'A') return;
+      dragging = true; e.preventDefault();
+    });
     track.addEventListener('mousedown', e => {
-      if (e.target === track || e.target === dotsEl) {
+      if ((e.target === track || e.target === dotsEl) && state.activeReadhead === 'A') {
         dragging = true;
         moveMarker(e);
       }
@@ -364,34 +411,46 @@
       applyReadheadToCircle(state.readheadPos);
     }
 
+    // Drag — height readhead (H): reads 0–1 through the heightMin/heightMax
+    // range of whichever arc the sound object is azimuthally inside right
+    // now. Only the isometric view can show elevation, so this only ever
+    // triggers a redraw there.
+    if (markerH) {
+      setHeightReadPos(window.CircleState ? window.CircleState.heightReadPos : 0);
+
+      let draggingH = false;
+      markerH.addEventListener('mousedown', e => {
+        if (state.activeReadhead !== 'H') return;
+        draggingH = true; e.preventDefault(); e.stopPropagation();
+      });
+      track.addEventListener('mousedown', e => {
+        if ((e.target === track || e.target === dotsEl) && state.activeReadhead === 'H') {
+          draggingH = true;
+          moveMarkerH(e);
+        }
+      });
+      window.addEventListener('mousemove', e => { if (draggingH) moveMarkerH(e); });
+      window.addEventListener('mouseup',   () => { draggingH = false; });
+
+      function moveMarkerH(e) {
+        const rect = track.getBoundingClientRect();
+        const x    = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+        const pct  = x / rect.width;
+        if (window.CircleState) window.CircleState.heightReadPos = pct;
+        setHeightReadPos(pct);
+        if (window.CircleIsoAPI && window.CircleIsoAPI.isActive()) window.CircleIsoAPI.draw();
+      }
+    }
+
     // Intensity slider — updates dots + circle in real time
     const forceEl    = document.getElementById('rh-force');
     const forceValEl = document.getElementById('rh-force-val');
     if (forceEl && forceValEl) {
       forceEl.addEventListener('input', () => {
-        state.easeIntensity = Number(forceEl.value);
+        state.ease[state.activeReadhead].intensity = Number(forceEl.value);
         forceValEl.textContent = forceEl.value + '%';
         updateDots();
-        applyReadheadToCircle(state.readheadPos);
-      });
-    }
-
-    // A/H switch — which readhead is active. H is a visual placeholder only
-    // (not wired to any position/parameter yet), so switching to it just
-    // dims marker A and highlights marker H, nothing else changes.
-    const switchBtn = document.getElementById('rh-switch-btn');
-    const markerH   = document.getElementById('rh-marker-h');
-    let activeReadhead = 'A';
-    function updateActiveReadheadVisual() {
-      marker.classList.toggle('dim', activeReadhead !== 'A');
-      if (markerH) markerH.classList.toggle('dim', activeReadhead !== 'H');
-    }
-    updateActiveReadheadVisual();
-    if (switchBtn) {
-      switchBtn.addEventListener('click', () => {
-        activeReadhead = activeReadhead === 'A' ? 'H' : 'A';
-        switchBtn.textContent = activeReadhead;
-        updateActiveReadheadVisual();
+        if (state.activeReadhead === 'A') applyReadheadToCircle(state.readheadPos);
       });
     }
   }
@@ -401,10 +460,19 @@
     if (marker) marker.style.left = (pos * 100).toFixed(1) + '%';
   }
 
-  /** Apply ease curve to raw readhead pos, then map to positionAngle on circle. */
+  function setHeightReadPos(pos) {
+    const markerH = document.getElementById('rh-marker-h');
+    if (markerH) markerH.style.left = (pos * 100).toFixed(1) + '%';
+  }
+
+  /** Apply ease curve to raw readhead pos, then map to positionAngle on circle.
+   *  Always uses readhead A's ease settings — A is the one that actually
+   *  drives the azimuth sweep; H's ease is stored separately (see state.ease)
+   *  and only shown/edited when the A/H toggle is switched to H. */
   function applyReadheadToCircle(pos) {
     if (!window.CircleState || !window.CircleAPI) return;
-    const easedPos = applyEase(pos, state.easeType, state.easeIntensity);
+    const ease = state.ease.A;
+    const easedPos = applyEase(pos, ease.type, ease.intensity);
     if (window.ArcsAPI) {
       window.ArcsAPI.applyReadhead(easedPos);
     } else {
@@ -766,10 +834,10 @@
     if (!choice) return;
     menu.querySelectorAll('.rh-ease-choice').forEach(c => c.classList.remove('active'));
     choice.classList.add('active');
-    btn.textContent = choice.textContent;
-    state.easeType = key;
+    btn.dataset.ease = key;
+    state.ease[state.activeReadhead].type = key;
     updateDots();
-    applyReadheadToCircle(state.readheadPos);
+    if (state.activeReadhead === 'A') applyReadheadToCircle(state.readheadPos);
   }
 
   function initEaseSelect() {
