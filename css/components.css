@@ -471,17 +471,20 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   border-top:   9px solid var(--ink);
   cursor: grab;
   pointer-events: all;
+  z-index: 2; /* the active marker (no .dim) sits in front of the other one */
   transition: border-top-color 0.1s;
 }
 .rh-marker:active { cursor: grabbing; }
 .rh-marker:hover  { border-top-color: #000; }
 
-/* Non-active readhead: dimmed, lighter tip, locked — swapped via the A/H
-   switch. Only the active one can be grabbed or moved via the track. */
+/* Non-active readhead: dimmed, lighter tip, locked, and pushed behind the
+   active one — swapped via the A/H switch. Only the active one can be
+   grabbed or moved via the track. */
 .rh-marker.dim {
   border-top-color: var(--border-strong);
   opacity: 0.55;
   cursor: not-allowed;
+  z-index: 1;
 }
 .rh-marker.dim:hover { border-top-color: var(--border-strong); }
 
@@ -623,6 +626,7 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 .spat-select { position: relative; }
 .spat-btn {
   height: 28px;
+  width: 5rem;
   padding: 0 8px;
   font-size: var(--sz-base);
   font-weight: 500;
@@ -640,7 +644,7 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  min-width: 130px;
+  min-width: 4rem;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -971,15 +975,103 @@ body.rig-scrubbing, body.rig-scrubbing * { cursor: ns-resize !important; user-se
   font-weight: 700;
 }
 
-/* ── RIG TAB — left column is always the isometric placement preview ────────── */
+/* ── RIG TAB — left column: iso viz on top, active-subset list below ─────────── */
 .settings-left.rig-left {
-  flex: 0 0 260px; /* overridden inline once the divider is dragged, see rig.js */
+  flex: 0 0 260px; /* overridden inline once the vertical divider is dragged, see rig.js */
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center; /* vertically centers the iso viz canvas */
+  min-height: 0;
 }
 .settings-right.rig-right { flex: 1; min-width: 0; }
+
+/* Viz gets ~2/3 of the column, the subset list ~1/3 — plain CSS flex-grow
+   ratio, so there's no layout jump waiting for JS to measure anything on
+   first paint; dragging .panel-resize-handle-h switches the list panel
+   over to a fixed pixel height instead (see bindVResize in rig.js). */
+.rig-viz-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 3px horizontal divider between the viz and the subset list — same
+   look/behavior as .panel-resize-handle, just the perpendicular axis. */
+.panel-resize-handle-h {
+  height: 3px;
+  width: 100%;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background: var(--border);
+  transition: background 0.15s;
+  position: relative;
+  z-index: 2;
+}
+.panel-resize-handle-h:hover,
+.panel-resize-handle-h.dragging { background: var(--ink); }
+
+.rig-subset-panel {
+  flex: 0 0 60px; /* collapsed to its minimum by default — drag the divider up for more room */
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  background: var(--white); /* was transparent — let the viz/whatever's behind show through the gaps */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 4px 4px;
+}
+.rig-subset-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.rig-subset-row:last-child { border-bottom: none; }
+.rig-subset-letter {
+  flex: 0 0 16px;
+  width: 16px;
+  font-size: var(--sz-xs);
+  font-weight: 700;
+  color: var(--text-2);
+  text-align: center;
+}
+.rig-subset-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--sz-base);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rig-subset-name-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text);
+  background: var(--white);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-sm);
+  padding: 1px 3px;
+}
+.rig-subset-edit {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  border-radius: var(--r-sm);
+  transition: background 0.1s, color 0.1s;
+}
+.rig-subset-edit .ico { width: 12px; height: 12px; }
+.rig-subset-edit:hover { background: var(--ink-fill); color: var(--text-2); }
 
 /* ── AUDIO TAB — same column spacing as the Rig tab ──────────────────────────── */
 .settings-left.audio-left  { flex: 0 0 260px; }

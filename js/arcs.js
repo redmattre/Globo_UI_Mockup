@@ -37,12 +37,16 @@
       .map(function (item) { return item.dataset.subgroup; });
   }
 
-  /** Small light-grey letter badge next to the subgroup button (e.g. "A, C"). */
+  /** Small light-grey badge next to the subgroup button, showing the
+   *  selected subset(s) own assigned name(s) (default "Subset A" etc., or
+   *  whatever custom name was given on the Rig tab) — reads the menu
+   *  items' own text rather than the raw id, so a rename there shows up
+   *  here immediately without this needing to know about names itself. */
   function updateSubgroupLetters() {
     const badge = document.getElementById('subgroup-letters');
     if (!badge) return;
-    badge.textContent = getSelectedSubgroups()
-      .map(function (s) { return s.toUpperCase(); })
+    badge.textContent = Array.from(document.querySelectorAll('#subgroup-menu .subgroup-item.active'))
+      .map(function (item) { return item.textContent.trim(); })
       .join(', ');
   }
 

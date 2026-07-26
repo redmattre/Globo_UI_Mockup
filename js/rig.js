@@ -240,6 +240,65 @@
     if (g) g.innerHTML = renderVizContent();
   }
 
+  /* ── Active-subset list (below the viz) — one row per tag that at least
+     one speaker currently uses, name editable via the pencil button ────── */
+  function renderSubsetList() {
+    // subsets is always seeded A→P and never reordered, so filtering it
+    // already yields alphabetical order — no separate sort needed.
+    var used = subsets.filter(function (su) {
+      return speakers.some(function (sp) { return sp.subsetTag === su.id; });
+    });
+    if (used.length === 0) return '<div class="empty-hint">Nessun subset assegnato</div>';
+
+    return used.map(function (su) {
+      return (
+        '<div class="rig-subset-row" data-subset-row="' + su.id + '">' +
+          '<span class="rig-subset-letter mono">' + su.id.toUpperCase() + '</span>' +
+          '<span class="rig-subset-name" data-subset-name="' + su.id + '">' + su.name + '</span>' +
+          '<button class="rig-subset-edit" data-subset-edit="' + su.id + '" title="Rinomina subset">' + icoPencil() + '</button>' +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function refreshSubsetList() {
+    var panel = document.getElementById('rig-subset-panel');
+    if (panel) { panel.innerHTML = renderSubsetList(); bindSubsetList(); }
+  }
+
+  function startRenameSubset(id) {
+    var su = subsets.filter(function (s) { return s.id === id; })[0];
+    var nameEl = document.querySelector('.rig-subset-name[data-subset-name="' + id + '"]');
+    if (!su || !nameEl) return;
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'rig-subset-name-input mono';
+    input.value = su.name;
+    nameEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    var cancelled = false;
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') input.blur();
+      else if (e.key === 'Escape') { cancelled = true; input.blur(); }
+    });
+    input.addEventListener('blur', function () {
+      if (!cancelled) renameSubset(id, input.value); // renames + refreshes everything
+      else refreshSubsetList(); // just restore the span, nothing actually changed
+    });
+  }
+
+  function bindSubsetList() {
+    var panel = document.getElementById('rig-subset-panel');
+    if (!panel) return;
+    panel.addEventListener('click', function (e) {
+      var editBtn = e.target.closest('[data-subset-edit]');
+      if (editBtn) startRenameSubset(editBtn.dataset.subsetEdit);
+    });
+  }
+
   /** Grab-drag anywhere in the viz that isn't a speaker dot to orbit the
    *  scene, same gesture as the main panning page's isometric view. Window
    *  listeners are added/removed within this single call (not bound once at
@@ -281,6 +340,9 @@
       '<circle cx="6" cy="4.5" r="1.2" fill="currentColor"/><circle cx="6" cy="9" r="1.2" fill="currentColor"/><circle cx="6" cy="13.5" r="1.2" fill="currentColor"/>' +
       '<circle cx="12" cy="4.5" r="1.2" fill="currentColor"/><circle cx="12" cy="9" r="1.2" fill="currentColor"/><circle cx="12" cy="13.5" r="1.2" fill="currentColor"/>' +
       '</svg>';
+  }
+  function icoPencil() {
+    return '<svg class="ico" viewBox="0 0 18 18" aria-hidden="true"><path d="M11.5 3.5 L14.5 6.5 L6.5 14.5 L3 15 L3.5 11.5 Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="9.8" y1="5.2" x2="12.8" y2="8.2" stroke="currentColor" stroke-width="1.3"/></svg>';
   }
 
   /* ── Right column: speaker roster, inline position controls ─────────────── */
@@ -350,10 +412,48 @@
 
   function render() {
     return (
-      '<div class="settings-left rig-left" style="flex: 0 0 ' + rigLeftWidth + 'px">' + renderViz() + '</div>' +
+      '<div class="settings-left rig-left" style="flex: 0 0 ' + rigLeftWidth + 'px">' +
+        '<div class="rig-viz-wrap">' + renderViz() + '</div>' +
+        '<div class="panel-resize-handle-h" id="rig-vresize" title="Trascina per ridimensionare"></div>' +
+        '<div class="rig-subset-panel" id="rig-subset-panel">' + renderSubsetList() + '</div>' +
+      '</div>' +
       '<div class="panel-resize-handle" id="rig-resize" title="Trascina per ridimensionare"></div>' +
       '<div class="settings-right rig-right">' + renderRight() + '</div>'
     );
+  }
+
+  /** Drag to resize the split between the viz and the subset list below it
+   *  — the initial 2:1 ratio (viz gets ~2/3, list ~1/3) comes from plain
+   *  CSS flex-grow (see .rig-viz-wrap/.rig-subset-panel), so there's no
+   *  layout jump waiting for JS to measure anything; dragging just swaps
+   *  the list panel over to a fixed pixel flex-basis, same approach as
+   *  bindResize's horizontal divider. Self-contained listeners, same
+   *  reasoning as bindResize/onVizRotateDown. */
+  function bindVResize() {
+    var handle = document.getElementById('rig-vresize');
+    var panel  = document.getElementById('rig-subset-panel');
+    var left   = document.querySelector('.rig-left');
+    if (!handle || !panel || !left) return;
+
+    handle.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      var startY = e.clientY;
+      var startH = panel.getBoundingClientRect().height;
+      handle.classList.add('dragging');
+
+      function onMove(e2) {
+        var leftH = left.getBoundingClientRect().height;
+        var newH = Math.max(60, Math.min(leftH - 100, startH - (e2.clientY - startY)));
+        panel.style.flex = '0 0 ' + newH + 'px';
+      }
+      function onUp() {
+        handle.classList.remove('dragging');
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      }
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    });
   }
 
   /** Drag the divider to resize the viz column — same reusable
@@ -413,6 +513,7 @@
    *  speaker actually uses (see getUsedSubsets) — call this after anything
    *  that could change which tags are in use, so that list stays live. */
   function notifySubgroupUsageChanged() {
+    refreshSubsetList();
     if (window.AppBridge && window.AppBridge.rebuildSubgroupMenu) window.AppBridge.rebuildSubgroupMenu();
   }
 
@@ -461,6 +562,17 @@
     if (!sp || !subsets.some(function (s) { return s.id === tagId; })) return;
     sp.subsetTag = tagId;
     refreshRight();
+    notifySubgroupUsageChanged();
+  }
+
+  /** Renames a subset (default is "Subset X"; a blank rename is ignored,
+   *  same convention as renameSpeaker) — shown in the roster's tag
+   *  tooltips, this list, and the panning page's subgroup button/menu. */
+  function renameSubset(id, name) {
+    var su = subsets.filter(function (s) { return s.id === id; })[0];
+    if (!su) return;
+    var trimmed = (name || '').trim();
+    if (trimmed) su.name = trimmed;
     notifySubgroupUsageChanged();
   }
 
@@ -736,6 +848,8 @@
     bindViz();
     bindRight();
     bindResize();
+    bindVResize();
+    bindSubsetList();
   }
 
   /* ── Public API ────────────────────────────────────────────────────────── */
