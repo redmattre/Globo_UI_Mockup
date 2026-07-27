@@ -198,14 +198,17 @@ ul { list-style: none; }
 
 /* Height slider controls to the right of the circle */
 .height-control {
-  flex: 0 0 auto;
+  /* flex: 0 0 auto; */
   display: flex;
   flex-direction: column;
   align-items: center;
+  height: 60%;
   /* gap: 5px; */
   /* padding: 6px 8px 6px 0; */
-  margin-right: .7rem;
+  margin-right: 8px;
   min-width: 24px;
+  max-width: 26px;
+  overflow: visible;
 }
 
 .height-track {
@@ -238,18 +241,6 @@ ul { list-style: none; }
   min-width: 0;
 }
 
-/* Algorithm tab bar at top of params section */
-.params-tab-bar {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 3px;
-  padding: 5px var(--pad-x);
-  border-bottom: 1px solid var(--border);
-  background: var(--white);
-}
-
 .module-params {
   flex: 1;
   padding: 16px var(--pad-x) 12px;
@@ -261,8 +252,9 @@ ul { list-style: none; }
   flex: 0 0 var(--footer-h);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 var(--pad-x);
+  gap: .5rem;
+  width: 100%;
+  /* padding: 0 var(--pad-x); */
   border-top: 1px solid var(--border);
   background: var(--white);
 }

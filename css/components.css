@@ -187,12 +187,10 @@
   border-radius: var(--r);
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
-.circle-view-btn .ico { width: 15px; height: 15px; }
 .circle-view-btn:hover { background: var(--ink-fill); }
-.circle-view-btn.active {
-  background: var(--ink);
-  color: #fff;
-  border-color: var(--ink);
+.circle-view-btn span {
+  font-size: var(--sz-sm);
+  letter-spacing: 0.02em;
 }
 
 /* Isometric view: drag the background (or an arc) to orbit around Z */
@@ -223,6 +221,7 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   color: var(--text-3);
   letter-spacing: 0.04em;
   flex-shrink: 0;
+  display: none;
 }
 
 /* Right-side group: ψ button + instance badge */
@@ -243,13 +242,6 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   gap: 2px;
   flex: 1;
   overflow: hidden;
-}
-
-/* When tab-bar lives inside the params section it must NOT stretch vertically */
-.params-tab-bar {
-  flex: 0 0 auto;
-  overflow: visible;
-  flex-wrap: wrap;
 }
 
 /* Settings tabs, inline in the secondary-panel header — no separator line
@@ -279,16 +271,78 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   background: var(--border);
   /* color: #fff; */
 }
-.tab.future {
+
+/* ── PARADIGM SELECT (dropdown at top of params section, replacing the old
+   icon-only tab bar — a plain label + text menu instead of unlabeled
+   symbols) ──────────────────────────────────────────────────────────────── */
+.module-select {
+  position: relative;
+  /* flex: 0 0 auto; */
+  display: flex;
+  justify-content: right;
+  padding: 5px var(--pad-x);
+  border-top: 1px solid var(--border);
+  background: var(--white);
+}
+.module-btn {
+  height: 1rem;
+  padding: 0 8px;
+  font-size: small;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--sz-base);
+  font-weight: 400;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.module-btn:hover { background: var(--ink-fill); }
+.module-btn.open  { background: var(--ink-fill); }
+
+.module-btn-chevron {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  transition: transform 0.12s;
+}
+.module-btn.open .module-btn-chevron { transform: rotate(180deg); }
+
+.module-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: var(--pad-x);
+  min-width: 8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  box-shadow: 0 2px 8px rgba(26, 25, 23, 0.14);
+  z-index: 20;
+}
+.module-menu[hidden] { display: none; }
+
+.module-choice {
+  padding: 5px 8px;
+  font-size: var(--sz-base);
+  color: var(--text);
+  text-align: left;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+.module-choice:hover:not(:disabled) { background: var(--ink-fill); }
+.module-choice.active { background: var(--ink-fill); font-weight: 600; }
+.module-choice.future,
+.module-choice:disabled {
   opacity: 0.28;
   pointer-events: none;
   font-style: italic;
-}
-
-.tab-ico {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
 }
 
 /* ── GS TOGGLE (global / stray) ─────────────────────────────────────────────── */
@@ -432,7 +486,9 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   flex: 1;
   display: flex;
   align-items: center;
-  padding: 0 2px;
+  /* padding: 0 2px; */
+  margin-left: .5rem;
+  margin-right: .5rem;
   min-width: 0;
 }
 
@@ -494,7 +550,7 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   align-items: center;
   gap: 5px;
   flex-shrink: 0;
-  margin-left: 14px; /* clear breathing room from the readhead track */
+  /* margin-left: 14px; */
 }
 
 .rh-ease-row,
@@ -1252,6 +1308,7 @@ body.rig-viz-rotating, body.rig-viz-rotating * { cursor: grabbing !important; us
   display: flex;
   flex-direction: column;
   gap: 3px;
+  max-width: 50rem;
 }
 
 .pattern-bar {
@@ -1346,7 +1403,7 @@ body.reordering-preset, body.reordering-preset * { cursor: grabbing !important; 
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: .25rem;
 }
 .speed-val {
   flex-shrink: 0;
@@ -1388,12 +1445,13 @@ body.reordering-preset, body.reordering-preset * { cursor: grabbing !important; 
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  margin-right: 4px;
 }
 
 .transport-btn {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -51,15 +51,25 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
-     MODULE TABS
+     MODULE (PARADIGM) SELECT
   ════════════════════════════════════════════════════════════════════════ */
   function switchModule(name, opts) {
     state.currentModule = name;
-    document.querySelectorAll('#module-tabs .tab').forEach(tab => {
-      tab.classList.toggle('active', tab.dataset.module === name);
-    });
+    const menu = document.getElementById('module-menu');
+    const label = document.getElementById('module-btn-label');
+    if (menu) {
+      menu.querySelectorAll('.module-choice').forEach(choice => {
+        choice.classList.toggle('active', choice.dataset.module === name);
+      });
+      const active = menu.querySelector('.module-choice.active');
+      if (label && active) label.textContent = active.textContent.trim();
+    }
     if (window.ModulesAPI) window.ModulesAPI.renderModule(name);
     if (window.CircleAPI)  window.CircleAPI.setModule(name);
+    // Refreshes the arc-btn-bar immediately — e.g. Traversa's 4-zone cap
+    // (see arcs.js's updateArcButtons) should grey out the remaining OFF
+    // buttons the moment you switch in, not just on the next hover.
+    if (window.ArcsAPI) window.ArcsAPI.updateArcButtons();
     // Perimetro has a single speed — lock the min handle to 0
     if (window.SpeedRangeAPI) window.SpeedRangeAPI.setLocked(name === 'perimetro');
     // Diretto spreads sound statically over the drawn arcs — no position to
@@ -591,9 +601,11 @@
         else { arc.heightMax = arc.heightMin; arc.heightMin = angle; dragging = 'min'; }
       }
       render();
-      // The isometric view (if visible) has its own live height handles —
-      // keep its wall-patch/dots tracking this slider in real time too.
-      if (window.CircleIsoAPI && window.CircleIsoAPI.isActive()) window.CircleIsoAPI.draw();
+      // The flat circle now shows a height indicator on the selected zone
+      // too (see circle.js's height ring), and the isometric view (if
+      // visible) has its own live height handles — keep both tracking this
+      // slider in real time.
+      if (window.CircleAPI) window.CircleAPI.draw();
     }
 
     /** Double-click a thumb to punch in a precise value — same shared popup
@@ -617,7 +629,7 @@
           }
           render();
           if (window.ArcsAPI) window.ArcsAPI.autosave();
-          if (window.CircleIsoAPI && window.CircleIsoAPI.isActive()) window.CircleIsoAPI.draw();
+          if (window.CircleAPI) window.CircleAPI.draw();
         },
       });
     }
@@ -858,6 +870,43 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
+     MODULE (PARADIGM) SELECTOR  (custom dropdown, same pattern as spat/
+     subgroup/ease — not an OS-native <select>)
+  ════════════════════════════════════════════════════════════════════════ */
+  function initModuleSelect() {
+    const sel  = document.getElementById('module-select');
+    const btn  = document.getElementById('module-btn');
+    const menu = document.getElementById('module-menu');
+    if (!sel || !btn || !menu) return;
+
+    function close() {
+      menu.hidden = true;
+      btn.classList.remove('open');
+    }
+    function open() {
+      menu.hidden = false;
+      btn.classList.add('open');
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.hidden ? open() : close();
+    });
+    menu.querySelectorAll('.module-choice[data-module]').forEach(choice => {
+      choice.addEventListener('click', () => {
+        switchModule(choice.dataset.module);
+        close();
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!menu.hidden && !sel.contains(e.target)) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !menu.hidden) close();
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
      EASE SELECTOR  (custom dropdown for the readhead ease curve, same
      pattern as spat/subgroup — not an OS-native <select>)
   ════════════════════════════════════════════════════════════════════════ */
@@ -1057,13 +1106,6 @@
       if (e.key === 'Escape' && state.secondaryOpen) closeSecondary();
     });
 
-    // Module tab bar (event delegation)
-    document.getElementById('module-tabs')
-      ?.addEventListener('click', e => {
-        const tab = e.target.closest('.tab[data-module]');
-        if (tab && !tab.disabled) switchModule(tab.dataset.module);
-      });
-
     // Settings tab bar (event delegation)
     document.getElementById('settings-tabs')
       ?.addEventListener('click', e => {
@@ -1156,6 +1198,7 @@
     initResize();
     initSubgroupSelect();
     initSpatSelect();
+    initModuleSelect();
     initEaseSelect();
     initBrandMenu();
     initSpeedRange();

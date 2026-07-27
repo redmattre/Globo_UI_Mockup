@@ -124,13 +124,23 @@
   function updateArcButtons() {
     const cs = window.CircleState;
     if (!cs || !window.CircleAPI) return;
+    // Traversa caps active zones at 4 (see MAX_ACTIVE_TRAVERSA in circle.js)
+    // — grey out the remaining OFF buttons once that cap is hit, same
+    // .disabled-ui utility class Diretto already uses for its own
+    // not-applicable controls, so it's clear before you even click.
+    const atCap = cs.module === 'traversa' &&
+      cs.arcs.filter(a => window.CircleAPI.isArcOn(a)).length >= 4;
     document.querySelectorAll('.arc-btn').forEach(function (btn) {
-      const i  = parseInt(btn.dataset.arc, 10);
-      const on = window.CircleAPI.isArcOn(cs.arcs[i]);
+      const i      = parseInt(btn.dataset.arc, 10);
+      const on     = window.CircleAPI.isArcOn(cs.arcs[i]);
+      const capped = atCap && !on;
       btn.classList.toggle('active', on);
       // Ring only tracks live hover on the circle — no fallback to last-selected
       btn.classList.toggle('selected', cs.hovered >= 0 && i === cs.hovered);
-      btn.title = 'Arco ' + (i + 1) + ' — ' + (on ? 'click: spegni' : 'click: accendi');
+      btn.classList.toggle('disabled-ui', capped);
+      btn.title = 'Arco ' + (i + 1) + ' — ' + (on
+        ? 'click: spegni'
+        : capped ? 'Traversa: massimo 4 zone attive' : 'click: accendi');
     });
   }
 
@@ -524,7 +534,13 @@
   function applyReadhead(pos) {
     if (!window.CircleState || !window.CircleAPI) return;
     window.CircleState.positionAngle = computePositionAngle(pos);
-    window.CircleAPI.draw();
+    // Only the dot moves here — arc geometry is untouched by a readhead
+    // tick — so this uses the cheap position-only update rather than a
+    // full draw() (see updatePositionDot in circle.js for why that matters
+    // during playback). Callers that also changed arc geometry (toggleArc,
+    // pattern morph) already ran their own full draw() just before this.
+    window.CircleAPI.updatePositionDot();
+    if (window.CircleIsoAPI && window.CircleIsoAPI.isActive()) window.CircleIsoAPI.draw();
   }
 
   /* ── Public API ─────────────────────────────────────────────────────────── */

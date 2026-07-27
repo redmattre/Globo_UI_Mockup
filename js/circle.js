@@ -198,13 +198,26 @@
     return candidates[0];
   }
 
+  /** Traversa mirrors every active zone with a ghost opposite it (see the
+   *  "Ghost arc" section in draw() and circle-iso.js's renderTraversaGhost)
+   *  — each one effectively counts as two on screen, so the usual 8-slot
+   *  cap is halved here to keep the total from looking like a cluttered 8
+   *  real + 8 ghost mess. */
+  var MAX_ACTIVE_TRAVERSA = 4;
+
   /** Turns a slot on: places it at `center` (an explicit angle, e.g. from a
    *  circle click) or, if omitted, in the best free gap (button click, see
    *  bestGapPlacement) — always at the default span/height, exactly like a
-   *  fresh zone. Returns false (no-op) if there's no room at all. */
+   *  fresh zone. Returns false (no-op) if there's no room at all, or if
+   *  Traversa's own lower active-zone cap (see MAX_ACTIVE_TRAVERSA) is
+   *  already reached. */
   function activateArc(idx, center) {
     var arc = window.CircleState.arcs[idx];
     if (!arc) return false;
+    if (window.CircleState.module === 'traversa') {
+      var activeCount = window.CircleState.arcs.filter(isArcOn).length;
+      if (activeCount >= MAX_ACTIVE_TRAVERSA) return false;
+    }
     var c, half;
     if (center === undefined || center === null) {
       var placement = bestGapPlacement(idx);
@@ -267,6 +280,56 @@
            ' L ' + s.x.toFixed(2) + ' ' + s.y.toFixed(2) +
            ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + e.x.toFixed(2) + ' ' + e.y.toFixed(2) + ' Z';
   }
+
+  /** Full-circle special case for ringSectorPath below — same reasoning as
+   *  fullCirclePath: right at a ~360° span, the endpoints of the generic
+   *  formula nearly coincide, which is exactly the kind of near-degenerate
+   *  input SVG's arc-flag disambiguation can render wrong. Two concentric
+   *  circles of opposite winding (evenodd) sidestep that entirely. */
+  function fullRingPath(rOuter, rInner) {
+    var topO = pt(0, rOuter), botO = pt(180, rOuter);
+    var topI = pt(0, rInner), botI = pt(180, rInner);
+    return 'M ' + topO.x.toFixed(2) + ' ' + topO.y.toFixed(2) +
+           ' A ' + rOuter + ' ' + rOuter + ' 0 1 1 ' + botO.x.toFixed(2) + ' ' + botO.y.toFixed(2) +
+           ' A ' + rOuter + ' ' + rOuter + ' 0 1 1 ' + topO.x.toFixed(2) + ' ' + topO.y.toFixed(2) +
+           ' M ' + topI.x.toFixed(2) + ' ' + topI.y.toFixed(2) +
+           ' A ' + rInner + ' ' + rInner + ' 0 1 0 ' + botI.x.toFixed(2) + ' ' + botI.y.toFixed(2) +
+           ' A ' + rInner + ' ' + rInner + ' 0 1 0 ' + topI.x.toFixed(2) + ' ' + topI.y.toFixed(2) + ' Z';
+  }
+
+  /** Ring-shaped wedge between two radii (rOuter > rInner), spanning the
+   *  same azimuth range as sectorPath — used by the height indicator below,
+   *  which needs a band that doesn't reach the centroid. */
+  function ringSectorPath(startA, endA, rOuter, rInner) {
+    var span = arcSpan(startA, endA);
+    if (span >= 359.5) return fullRingPath(rOuter, rInner);
+    var large = span > 180 ? 1 : 0;
+    var so = pt(startA, rOuter), eo = pt(endA, rOuter);
+    var ei = pt(endA, rInner),   si = pt(startA, rInner);
+    return 'M ' + so.x.toFixed(2) + ' ' + so.y.toFixed(2) +
+           ' A ' + rOuter + ' ' + rOuter + ' 0 ' + large + ' 1 ' + eo.x.toFixed(2) + ' ' + eo.y.toFixed(2) +
+           ' L ' + ei.x.toFixed(2) + ' ' + ei.y.toFixed(2) +
+           ' A ' + rInner + ' ' + rInner + ' 0 ' + large + ' 0 ' + si.x.toFixed(2) + ' ' + si.y.toFixed(2) +
+           ' Z';
+  }
+
+  /** Darkens a "#RRGGBB" colour by `amount` (0–1) — used to shade the height
+   *  indicator a bit darker than the zone's own colour, per spec. */
+  function darkenColor(hex, amount) {
+    var num = parseInt(hex.slice(1), 16);
+    var r = Math.round(((num >> 16) & 0xFF) * (1 - amount));
+    var g = Math.round(((num >> 8)  & 0xFF) * (1 - amount));
+    var b = Math.round(( num        & 0xFF) * (1 - amount));
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+
+  /** Elevation → horizontal radius, same orthographic convention already
+   *  used by the isometric view (rig.js/circle-iso.js): r = R * cos(el).
+   *  0° (horizon) stays at the outer edge, ±90° (zenith/nadir) collapses to
+   *  the centre — so raising the height slider visibly shrinks this ring
+   *  toward the middle of the flat 2D circle, which otherwise shows no
+   *  trace at all of the (otherwise invisible-here) elevation control. */
+  function heightRadius(deg) { return R * Math.cos(toRad(deg)); }
 
   /* ── Trim-handle arrow ──────────────────────────────────────────────────── */
   function makeTrimHandle(parent, angle, side, color) {
@@ -408,6 +471,25 @@
         fill: col + (isHov ? '18' : '0D'),
       }));
 
+      /* Height indicator (selected zone only): a band that shrinks toward
+         the centre as elevation rises — see heightRadius above. At the
+         default heightMin=heightMax=0 it collapses to zero width, so a
+         freshly-created zone shows nothing extra, exactly matching the
+         "no height set yet" case. */
+      if (i === cs.selected) {
+        var rA = heightRadius(arc.heightMin);
+        var rB = heightRadius(arc.heightMax);
+        var outerR = Math.max(rA, rB);
+        var innerR = Math.min(rA, rB);
+        if (outerR - innerR > 0.5) {
+          g.appendChild(el('path', {
+            d: ringSectorPath(arc.left, arc.right, outerR, innerR),
+            fill: darkenColor(col, 0.0005) + '10',
+            'pointer-events': 'none',
+          }));
+        }
+      }
+
       /* Arc stroke */
       g.appendChild(el('path', {
         d: arcPath(arc.left, arc.right), fill: 'none',
@@ -498,6 +580,28 @@
       drawScheduled = false;
       draw();
     });
+  }
+
+  /** Cheap alternative to draw(), for the playback/readhead-drag ticks where
+   *  only cs.positionAngle changes — no arc was added/removed/resized. Those
+   *  ticks fire up to 60×/sec, and draw() wipes + rebuilds the *entire* SVG
+   *  (including every handle) on every single call. That's harmless to look
+   *  at, but it silently broke double-clicking any handle while playing:
+   *  browsers reset their double-click counter whenever the second click's
+   *  target is a different DOM node than the first click's — even at the
+   *  exact same screen position — and a handle rebuilt between the two
+   *  clicks is always a brand-new node. Moving the existing dot in place
+   *  avoids touching the rest of the scene at all. */
+  function updatePositionDot() {
+    var svg = document.getElementById('nav-circle');
+    if (!svg) return;
+    var cs = window.CircleState;
+    if (cs.module === 'diretto') return; // no dot in this mode — nothing to move
+    var dot = svg.querySelector('.position-dot');
+    if (!dot) { draw(); return; } // first paint hasn't happened yet
+    var p = pt(cs.positionAngle);
+    dot.setAttribute('cx', p.x.toFixed(2));
+    dot.setAttribute('cy', p.y.toFixed(2));
   }
 
   /* ── SVG coordinate conversion ──────────────────────────────────────────── */
@@ -844,6 +948,9 @@
       requestDraw();
       if (window.CircleIsoAPI && window.CircleIsoAPI.isActive()) window.CircleIsoAPI.draw();
     },
+    // Position-only update (see updatePositionDot above) — used by every
+    // caller that just moves the readhead along already-unchanged arcs.
+    updatePositionDot: updatePositionDot,
     setModule: function (mod) { window.CircleState.module = mod; window.CircleAPI.draw(); },
     getState:  function () { return window.CircleState; },
     // Arc lifecycle — see the State comment above: there is no "created"

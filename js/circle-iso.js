@@ -786,8 +786,8 @@
       iso.hidden = false; iso.style.display = 'block';
       void iso.offsetHeight; // force a reflow before anything else can read/paint stale layout
     }
-    var toggleBtn = document.getElementById('circle-iso-toggle');
-    if (toggleBtn) toggleBtn.classList.add('active');
+    var toggleLabel = document.getElementById('circle-iso-toggle-label');
+    if (toggleLabel) toggleLabel.textContent = '2D';
   }
 
   function hide() {
@@ -796,8 +796,8 @@
     var iso  = document.getElementById('nav-circle-iso');
     if (flat) { flat.hidden = false; flat.style.display = 'block'; }
     if (iso)  { iso.hidden  = true;  iso.style.display  = 'none'; }
-    var toggleBtn = document.getElementById('circle-iso-toggle');
-    if (toggleBtn) toggleBtn.classList.remove('active');
+    var toggleLabel = document.getElementById('circle-iso-toggle-label');
+    if (toggleLabel) toggleLabel.textContent = '3D';
     // Flat view wasn't being redrawn while hidden — refresh it now via the
     // dispatcher (isActive() is already false, so this only runs the flat draw).
     if (window.CircleAPI) window.CircleAPI.draw();

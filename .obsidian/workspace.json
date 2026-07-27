@@ -45,7 +45,8 @@
               "title": "Drawing 2026-07-26 10.58.06.excalidraw"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -208,11 +209,11 @@
       "obsidian-excalidraw-plugin:New drawing": false
     }
   },
-  "active": "a6c47371e200f96c",
+  "active": "a2259f3b48cea87d",
   "lastOpenFiles": [
+    "To do RNBO.md",
     "Excalidraw/software_architecture.md",
     "Excalidraw/progettazione.md",
-    "To do RNBO.md",
     "Excalidraw/Drawing 2026-07-26 10.58.06.excalidraw.md",
     "Considerazioni.md",
     "Transizione VST.md",
