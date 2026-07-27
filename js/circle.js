@@ -539,6 +539,26 @@
         var originR = R * 0.92 * Math.sqrt(span / maxSpanAllowed());
         var centPt  = pt(cent);
 
+        /* Wide invisible hit-band along the whole centre→centroid radius —
+           the origin handle (span control) lives somewhere on this line at
+           a radius that shrinks with the span, and for a very small arc it
+           ends up just a few px from the centre, inside what would
+           otherwise be a hair-thin hoverable sliver (the sector hit area
+           narrows to the same vanishing point there). This band stays a
+           constant, generous width the whole way in, so the handle stays
+           reachable regardless of how small the arc is. Gated to isHov,
+           same as the other handle-only elements — only the arc actually
+           being interacted with gets a widened region near the shared
+           centre point, so it can't "steal" clicks meant for some other
+           active arc's own (much thinner) approach to the centre. Same fix
+           the isometric view already uses (see renderCentroidRadiusHitBand
+           in circle-iso.js). */
+        g.appendChild(el('line', {
+          x1: CX, y1: CY,
+          x2: pt(cent, R * 1.05).x.toFixed(2), y2: pt(cent, R * 1.05).y.toFixed(2),
+          stroke: 'transparent', 'stroke-width': '18',
+        }));
+
         /* Dashed radials to endpoints */
         [arc.left, arc.right].forEach(function (ang) {
           var ep = pt(ang);
