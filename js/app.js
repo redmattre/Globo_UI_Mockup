@@ -421,8 +421,9 @@
 
     // Drag — height readhead (H): reads 0–1 through the heightMin/heightMax
     // range of whichever arc the sound object is azimuthally inside right
-    // now. Only the isometric view can show elevation, so this only ever
-    // triggers a redraw there.
+    // now. Moves the position dot's radius on the flat circle (see
+    // positionDotPoint in circle.js) and the dot's elevation in the
+    // isometric view.
     if (markerH) {
       setHeightReadPos(window.CircleState ? window.CircleState.heightReadPos : 0);
 
@@ -446,6 +447,10 @@
         const pct  = x / rect.width;
         if (window.CircleState) window.CircleState.heightReadPos = pct;
         setHeightReadPos(pct);
+        // Position-only update (see circle.js) — heightReadPos changing
+        // doesn't touch arc geometry, so this is the same cheap path used
+        // by the A readhead's own drag, avoiding a full rebuild per pixel.
+        if (window.CircleAPI) window.CircleAPI.updatePositionDot();
         if (window.CircleIsoAPI && window.CircleIsoAPI.isActive()) window.CircleIsoAPI.draw();
       }
     }

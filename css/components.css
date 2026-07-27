@@ -382,6 +382,7 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   /* border: 1px solid var(--border-strong); */
   border: none;
   border-radius: var(--r);
+  background-color: transparent;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 /* .mode-toggle:hover {

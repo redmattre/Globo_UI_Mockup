@@ -100,6 +100,24 @@
            angleInArc(norm(r2 - 0.5), l1, r1);
   }
 
+  /** Inclusive containment (unlike angleInArc above, which deliberately
+   *  excludes the endpoints for overlap detection) — finds which active arc
+   *  the sound object currently sits in azimuthally, so the H readhead knows
+   *  whose heightMin/heightMax range to read its 0–1 position against. Same
+   *  logic as circle-iso.js's own copy (each view keeps its own — see that
+   *  file's architecture note). */
+  function arcIndexForAngle(angle) {
+    var arcs = window.CircleState.arcs;
+    for (var i = 0; i < arcs.length; i++) {
+      var a = arcs[i];
+      if (!isArcOn(a)) continue;
+      var span = arcSpan(a.left, a.right);
+      var d = norm(angle - a.left);
+      if (d <= span + 0.01) return i;
+    }
+    return -1;
+  }
+
   /** An arc is "on" purely by having nonzero span — see the State comment
    *  above. Same 0.5° tolerance as angleInArc's own zero-span guard. */
   function isArcOn(arc) {
@@ -331,6 +349,20 @@
    *  trace at all of the (otherwise invisible-here) elevation control. */
   function heightRadius(deg) { return R * Math.cos(toRad(deg)); }
 
+  /** Where the moving sound object (position dot) actually sits, factoring
+   *  in the H readhead: its elevation is a 0–1 position (cs.heightReadPos)
+   *  through the heightMin/heightMax range of whichever arc it's currently
+   *  inside azimuthally — same convention circle-iso.js already uses for its
+   *  own (3D) position dot. Falls back to the floor (elevation 0) when the
+   *  dot isn't azimuthally inside any active arc. */
+  function positionDotPoint() {
+    var cs = window.CircleState;
+    var curArc = cs.arcs[arcIndexForAngle(cs.positionAngle)];
+    var hPct   = cs.heightReadPos || 0;
+    var posEl  = curArc ? (curArc.heightMin + hPct * (curArc.heightMax - curArc.heightMin)) : 0;
+    return pt(cs.positionAngle, heightRadius(posEl));
+  }
+
   /* ── Trim-handle arrow ──────────────────────────────────────────────────── */
   function makeTrimHandle(parent, angle, side, color) {
     var p    = pt(angle);
@@ -557,7 +589,7 @@
         }));
       });
     } else {
-      var posPt = pt(cs.positionAngle);
+      var posPt = positionDotPoint();
       svg.appendChild(el('circle', {
         cx: posPt.x.toFixed(2), cy: posPt.y.toFixed(2), r: '5',
         fill: '#0F0E0D', stroke: '#fff', 'stroke-width': '1.5',
@@ -599,7 +631,7 @@
     if (cs.module === 'diretto') return; // no dot in this mode — nothing to move
     var dot = svg.querySelector('.position-dot');
     if (!dot) { draw(); return; } // first paint hasn't happened yet
-    var p = pt(cs.positionAngle);
+    var p = positionDotPoint();
     dot.setAttribute('cx', p.x.toFixed(2));
     dot.setAttribute('cy', p.y.toFixed(2));
   }

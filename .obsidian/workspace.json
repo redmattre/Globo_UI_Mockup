@@ -25,12 +25,14 @@
             "id": "a2259f3b48cea87d",
             "type": "leaf",
             "state": {
-              "type": "excalidraw",
+              "type": "markdown",
               "state": {
-                "file": "Excalidraw/software_architecture.md"
+                "file": "Considerazioni.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "excalidraw-icon",
-              "title": "software_architecture"
+              "icon": "lucide-file",
+              "title": "Considerazioni"
             }
           },
           {
@@ -211,11 +213,11 @@
   },
   "active": "a2259f3b48cea87d",
   "lastOpenFiles": [
-    "To do RNBO.md",
-    "Excalidraw/software_architecture.md",
-    "Excalidraw/progettazione.md",
     "Excalidraw/Drawing 2026-07-26 10.58.06.excalidraw.md",
     "Considerazioni.md",
+    "Excalidraw/software_architecture.md",
+    "To do RNBO.md",
+    "Excalidraw/progettazione.md",
     "Transizione VST.md",
     "Riunione 1.md",
     "Architettura_draft.canvas",
