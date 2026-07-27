@@ -37,6 +37,15 @@
   function roundAzimuth(deg) { return norm(roundToHalf(norm(deg))); }
   function arcSpan(left, right) { return norm(right - left); }
 
+  /** Same reasoning as circle.js's own maxSpanAllowed — Traversa mirrors
+   *  every zone onto the opposite azimuth (see renderTraversaGhost), so a
+   *  zone wider than half the circle would overlap its own 180°-rotated
+   *  ghost. Kept as its own copy per this file's self-contained-module
+   *  convention rather than calling into circle.js. */
+  function maxSpanAllowed() {
+    return (window.CircleState && window.CircleState.module === 'traversa') ? 180 : 359.5;
+  }
+
   function angleInArc(angle, left, right) {
     var span = arcSpan(left, right);
     if (span < 0.5) return false;
@@ -354,10 +363,69 @@
     return '<g pointer-events="none">' + parts.join('') + '</g>';
   }
 
+  /** Traversa mode's mirrored "ghost" zone — the true 3D counterpart of the
+   *  flat view's own opposite-side ghost (circle.js, "Ghost arc" section):
+   *  same azimuth mirroring (origine: rotate both edges 180°; talete:
+   *  reflect through centroid+180 — algebraically identical to origine,
+   *  kept as a separate branch anyway so the two stay in sync if that ever
+   *  changes) at the SAME elevation as the real zone — only the azimuth
+   *  moves to the antipodal side, the latitude band itself doesn't flip
+   *  to the opposite hemisphere. That's also why the arc's own azimuth
+   *  span needs to stay under half the circle (see MAX_TRAVERSA_SPAN in
+   *  circle.js/circle-iso.js): with elevation left alone, the only thing
+   *  that could make the ghost collide with the real zone is azimuth
+   *  overlap once rotated 180°. Only shown on hover, same as the flat
+   *  view's version; not draggable, so a coarse grid (matching
+   *  renderDirettoShell) is enough. */
+  function renderTraversaGhost(arc, color) {
+    var cs = window.CircleState;
+    var gL, gR;
+    if (!cs || cs.ghostOpposition === 'origine') {
+      gL = norm(arc.left + 180);
+      gR = norm(arc.right + 180);
+    } else {
+      var gCent = norm(arc.left + arcSpan(arc.left, arc.right) / 2);
+      gL = norm(gCent + 180 - (gCent - arc.left));
+      gR = norm(gCent + 180 + (arc.right - gCent));
+    }
+
+    var NAZ = 20, NEL = 6;
+    var azs = sampleAz(gL, gR, NAZ + 1);
+    var els = sampleEl(arc.heightMin, arc.heightMax, NEL + 1);
+
+    var grid = [];
+    for (var i = 0; i <= NEL; i++) {
+      var row = [];
+      for (var j = 0; j <= NAZ; j++) row.push(worldToScreen(azs[j], els[i], FLOOR_R));
+      grid.push(row);
+    }
+
+    var parts = [];
+    for (var i2 = 0; i2 < NEL; i2++) {
+      for (var j2 = 0; j2 < NAZ; j2++) {
+        var a = grid[i2][j2], b = grid[i2][j2 + 1], cc = grid[i2 + 1][j2 + 1], d = grid[i2 + 1][j2];
+        parts.push('<polygon points="' +
+          a.x.toFixed(2) + ',' + a.y.toFixed(2) + ' ' + b.x.toFixed(2) + ',' + b.y.toFixed(2) + ' ' +
+          cc.x.toFixed(2) + ',' + cc.y.toFixed(2) + ' ' + d.x.toFixed(2) + ',' + d.y.toFixed(2) +
+          '" fill="' + color + '18" stroke="none"/>');
+      }
+    }
+
+    function pathFrom(points) {
+      return '<path d="M ' + points.map(function (p) { return p.x.toFixed(2) + ' ' + p.y.toFixed(2); }).join(' L ') +
+        '" fill="none" stroke="' + color + '" stroke-width="1.3" stroke-dasharray="4 3" opacity="0.5"/>';
+    }
+    var outline = pathFrom(grid[0]) + pathFrom(grid[NEL]) +
+      pathFrom(grid.map(function (row) { return row[0]; })) +
+      pathFrom(grid.map(function (row) { return row[NAZ]; }));
+
+    return '<g pointer-events="none">' + parts.join('') + outline + '</g>';
+  }
+
   function renderAzimuthHandles(arc, color) {
     var span   = arcSpan(arc.left, arc.right);
     var cent   = norm(arc.left + span / 2);
-    var originR = FLOOR_R * 0.92 * Math.sqrt(span / 359.5);
+    var originR = FLOOR_R * 0.92 * Math.sqrt(span / maxSpanAllowed());
 
     var pL = worldToScreen(arc.left, 0, FLOOR_R);
     var pR = worldToScreen(arc.right, 0, FLOOR_R);
@@ -431,6 +499,10 @@
       // shows all statically-spread zones, same as the flat view's black
       // semi-arcs. Kept outside the hoverable group and inert to clicks/hover.
       if (cs.module === 'diretto') parts.push(renderDirettoShell(item.arc));
+      // Traversa: mirrored ghost zone in the opposite (antipodal) part of
+      // the sphere — only while this arc is hovered, same as the flat
+      // view's own ghost, which only shows for the actively-hovered arc.
+      if (cs.module === 'traversa' && isHov) parts.push(renderTraversaGhost(item.arc, color));
     });
 
     // Position dot (the moving sound object) — hidden in Diretto, which has
@@ -580,7 +652,7 @@
        rotation to even recover the right direction at all. */
     if (dragState.type === 'origin') {
       var dyOrigin = dragState.startY - e.clientY;
-      var newSpanIso = Math.max(1, Math.min(359.5, roundToHalf(dragState.startSpan + dyOrigin * ORIGIN_DRAG_SENSITIVITY)));
+      var newSpanIso = Math.max(1, Math.min(maxSpanAllowed(), roundToHalf(dragState.startSpan + dyOrigin * ORIGIN_DRAG_SENSITIVITY)));
       var halfIso = newSpanIso / 2;
       var nLIso = roundAzimuth(dragState.cent - halfIso), nRIso = roundAzimuth(dragState.cent + halfIso);
       if (!wouldOverlapIso(dragState.arcIdx, nLIso, nRIso)) { arc.left = nLIso; arc.right = nRIso; }
@@ -607,12 +679,12 @@
     } else if (dragState.type === 'trim-left') {
       var newA = roundAzimuth(floorAzimuthFromXY(xy.x, xy.y));
       var newSp = arcSpan(newA, arc.right);
-      if (newSp > 1 && newSp <= 359.5 && !wouldOverlapIso(dragState.arcIdx, newA, arc.right)) arc.left = newA;
+      if (newSp > 1 && newSp <= maxSpanAllowed() && !wouldOverlapIso(dragState.arcIdx, newA, arc.right)) arc.left = newA;
 
     } else if (dragState.type === 'trim-right') {
       var newA2 = roundAzimuth(floorAzimuthFromXY(xy.x, xy.y));
       var newSp2 = arcSpan(arc.left, newA2);
-      if (newSp2 > 1 && newSp2 <= 359.5 && !wouldOverlapIso(dragState.arcIdx, arc.left, newA2)) arc.right = newA2;
+      if (newSp2 > 1 && newSp2 <= maxSpanAllowed() && !wouldOverlapIso(dragState.arcIdx, arc.left, newA2)) arc.right = newA2;
     }
 
     if (window.ArcsAPI && window.AppBridge) {
@@ -659,7 +731,7 @@
     } else if (type === 'trim-left')  { label = 'Angolo sinistro (°)'; value = toDisplay(arc.left);  min = -180; max = 180; }
     else if (type === 'trim-right')   { label = 'Angolo destro (°)';   value = toDisplay(arc.right); min = -180; max = 180; }
     else if (type === 'centroid')     { label = 'Centroide (°)';       value = toDisplay(cent);      min = -180; max = 180; }
-    else if (type === 'origin')       { label = 'Apertura (°)';        value = roundToHalf(span);    min = 1;    max = 359.5; }
+    else if (type === 'origin')       { label = 'Apertura (°)';        value = roundToHalf(span);    min = 1;    max = maxSpanAllowed(); }
     else return;
 
     window.ValueEditorAPI.open({
@@ -676,7 +748,7 @@
           }
           if (window.ArcsAPI) window.ArcsAPI.syncHeightSlider(arcIdx);
         } else if (type === 'origin') {
-          var newSpan = Math.max(1, Math.min(359.5, roundToHalf(raw)));
+          var newSpan = Math.max(1, Math.min(maxSpanAllowed(), roundToHalf(raw)));
           var nL = roundAzimuth(cent - newSpan / 2), nR = roundAzimuth(cent + newSpan / 2);
           if (!wouldOverlapIso(arcIdx, nL, nR)) { arc.left = nL; arc.right = nR; }
         } else {

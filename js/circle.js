@@ -60,6 +60,15 @@
   function roundToHalf(deg) { return Math.round(deg * 2) / 2; }
   function roundAzimuth(deg) { return norm(roundToHalf(norm(deg))); }
 
+  /** Traversa mirrors every zone onto the opposite azimuth (see the "Ghost
+   *  arc" section in draw() and circle-iso.js's renderTraversaGhost) — a
+   *  zone wider than half the circle would necessarily overlap its own
+   *  180°-rotated ghost, so its span is capped there instead of the usual
+   *  ~full circle. */
+  function maxSpanAllowed() {
+    return (window.CircleState && window.CircleState.module === 'traversa') ? 180 : 359.5;
+  }
+
   function pt(a, r) {
     r = (r === undefined) ? R : r;
     var rad = toRad(a);
@@ -409,8 +418,11 @@
       if (isHov) {
         var cent    = centroidAngle(arc.left, arc.right);
         var span    = arcSpan(arc.left, arc.right);
-        /* Square-root mapping: 90° arc → ~50% R, 360° → 92% R (full travel) */
-        var originR = R * 0.92 * Math.sqrt(span / 359.5);
+        /* Square-root mapping: quarter of the current max → ~50% R, full
+           current max → 92% R (full travel) — normalized against whatever
+           the max span currently is, so the handle still uses its whole
+           travel range even when Traversa caps it to 180°. */
+        var originR = R * 0.92 * Math.sqrt(span / maxSpanAllowed());
         var centPt  = pt(cent);
 
         /* Dashed radials to endpoints */
@@ -628,7 +640,7 @@
          point (horizontal for an east/west arc, diagonal otherwise). */
       var curY = e.touches ? e.touches[0].clientY : e.clientY;
       var dyOrigin = snap.startY - curY;
-      var newSpan  = Math.max(1, Math.min(359.5, roundToHalf(snap.span + dyOrigin * ORIGIN_DRAG_SENSITIVITY)));
+      var newSpan  = Math.max(1, Math.min(maxSpanAllowed(), roundToHalf(snap.span + dyOrigin * ORIGIN_DRAG_SENSITIVITY)));
       var nL      = roundAzimuth(snap.cent - newSpan / 2);
       var nR      = roundAzimuth(snap.cent + newSpan / 2);
       if (!wouldOverlap(dragArcIdx, nL, nR)) {
@@ -639,14 +651,14 @@
     } else if (dragging === 'trim-left') {
       var newA  = roundAzimuth(angleOf(sp.x, sp.y));
       var newSp = arcSpan(newA, arc.right);
-      if (newSp > 1 && newSp <= 359.5 && !wouldOverlap(dragArcIdx, newA, arc.right)) {
+      if (newSp > 1 && newSp <= maxSpanAllowed() && !wouldOverlap(dragArcIdx, newA, arc.right)) {
         arc.left = newA;
       }
 
     } else if (dragging === 'trim-right') {
       var newA2  = roundAzimuth(angleOf(sp.x, sp.y));
       var newSp2 = arcSpan(arc.left, newA2);
-      if (newSp2 > 1 && newSp2 <= 359.5 && !wouldOverlap(dragArcIdx, arc.left, newA2)) {
+      if (newSp2 > 1 && newSp2 <= maxSpanAllowed() && !wouldOverlap(dragArcIdx, arc.left, newA2)) {
         arc.right = newA2;
       }
     }
@@ -755,7 +767,7 @@
       case 'centroid':
         label = 'Centroide (°)';        currentVal = toDisplay(cent);      minVal = -180; maxVal = 180; break;
       case 'origin':
-        label = 'Apertura (°)';         currentVal = roundToHalf(span);    minVal = 1;    maxVal = 359.5; break;
+        label = 'Apertura (°)';         currentVal = roundToHalf(span);    minVal = 1;    maxVal = maxSpanAllowed(); break;
       default: return;
     }
 
@@ -764,7 +776,7 @@
       screenX: screenX, screenY: screenY,
       onApply: function (raw) {
         if (handleType === 'origin') {
-          var newSpan = Math.max(1, Math.min(359.5, roundToHalf(raw)));
+          var newSpan = Math.max(1, Math.min(maxSpanAllowed(), roundToHalf(raw)));
           var nL = roundAzimuth(cent - newSpan / 2);
           var nR = roundAzimuth(cent + newSpan / 2);
           if (!wouldOverlap(arcIdx, nL, nR)) { arc.left = nL; arc.right = nR; }
