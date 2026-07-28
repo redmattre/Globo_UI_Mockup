@@ -238,6 +238,11 @@
   function refreshVizOnly() {
     var g = document.getElementById('rig-viz-content');
     if (g) g.innerHTML = renderVizContent();
+    // The main panning page draws its own illustration of these same
+    // speakers (2D perimeter icons + 3D full rig) around its circle/sphere
+    // — keep it live as positions are added/moved/removed here, even though
+    // that page sits hidden behind this settings overlay while editing.
+    if (window.CircleAPI) window.CircleAPI.draw();
   }
 
   /* ── Active-subset list (below the viz) — one row per tag that at least
@@ -856,6 +861,17 @@
   function getSpeakers() {
     return speakers.map(function (sp) { return { id: sp.id, name: sp.name }; });
   }
+  /** Full az/el/dist/subsetTag for every speaker — used by the main panning
+   *  page to draw the speaker-position illustrations around the circle (2D)
+   *  and sphere (3D), and to filter which ones show by the currently
+   *  selected subgroup(s). A plain array copy, not a live reference:
+   *  callers only ever read this right before drawing, so there's no
+   *  staleness risk. */
+  function getSpeakerPositions() {
+    return speakers.map(function (sp) {
+      return { id: sp.id, name: sp.name, az: sp.az, el: sp.el, dist: sp.dist, subsetTag: sp.subsetTag };
+    });
+  }
   /** Only the tags at least one speaker is actually using — the panning
    *  page's subgroup dropdown lists these, not all 16, so it doesn't show
    *  a wall of letters nobody's assigned to anything. */
@@ -865,5 +881,9 @@
       .map(function (s) { return { id: s.id, name: s.name }; });
   }
 
-  window.RigAPI = { render: render, bind: bind, getSpeakers: getSpeakers, getUsedSubsets: getUsedSubsets };
+  window.RigAPI = {
+    render: render, bind: bind,
+    getSpeakers: getSpeakers, getSpeakerPositions: getSpeakerPositions,
+    getUsedSubsets: getUsedSubsets,
+  };
 })();

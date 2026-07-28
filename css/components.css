@@ -163,21 +163,24 @@
   font-weight: 600;
 }
 
-/* ── CIRCLE VIEW CONTROLS (bottom-right of the circle graphic: iso toggle) ───── */
-.circle-view-controls {
+/* ── CIRCLE VIEW CONTROLS (bottom corners of the circle graphic: iso toggle
+   bottom-right, speaker-illustration toggle bottom-left) ───────────────────── */
+.circle-view-controls,
+.circle-view-controls-left {
   position: absolute;
   /* Anchored to .circle-section (see the HTML comment) — 8px above the
      readhead bar, the next real visual border below the circle. */
   bottom: calc(var(--rh-h) + 8px);
-  right: 8px;
   z-index: 5;
   display: flex;
   gap: 6px;
-  /* background-color: red; */
 }
+.circle-view-controls      { right: 8px; }
+.circle-view-controls-left { left:  8px; }
 .circle-view-btn {
-  width: 26px;
+  min-width: 26px;
   height: 26px;
+  padding: 0 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -192,6 +195,16 @@
   font-size: var(--sz-sm);
   letter-spacing: 0.02em;
 }
+/* Only used by #speaker-viz-toggle (the iso-toggle button reflects its
+   state via its "2D"/"3D" text instead) — the button chrome stays neutral
+   when active, just the icon itself (fill="currentColor") darkens. */
+.circle-view-btn.active {
+  color: var(--ink);
+}
+.circle-view-btn .ico { width: 14px; height: 14px; }
+/* Icon-only, so it stays an exact square instead of the text buttons'
+   min-width + horizontal padding (sized for "2D"/"3D", too wide here). */
+#speaker-viz-toggle { width: 26px; padding: 0; }
 
 /* Isometric view: drag the background (or an arc) to orbit around Z */
 #nav-circle-iso { cursor: grab; }

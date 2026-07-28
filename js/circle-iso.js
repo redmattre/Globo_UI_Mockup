@@ -207,11 +207,105 @@
     }
     s += '<polygon points="' + pts.join(' ') + '" fill="none" stroke="var(--border-strong)" stroke-width="1"/>';
 
-    // Small orientation tick at world north — visibly sweeps around as the view rotates
-    var tick = worldToScreen(0, 0, FLOOR_R * 1.12);
+    // Small orientation tick at world north — visibly sweeps around as the
+    // view rotates. Pulled in closer to the sphere than the speaker icons
+    // sit (see SPK_SURFACE_OFFSET below) so a speaker at this exact azimuth
+    // doesn't sit right on top of it — it now sits in the gap between the
+    // sphere and the speakers instead of overlapping either.
+    var tick = worldToScreen(0, 0, FLOOR_R * 1.06);
     s += '<circle cx="' + tick.x.toFixed(2) + '" cy="' + tick.y.toFixed(2) + '" r="1.6" fill="var(--text-3)"/>';
 
     return s;
+  }
+
+  /** Projects an arbitrary world-space point straight to screen space — used
+   *  by the speaker icons below, which need points offset from a polar
+   *  position rather than a bare (az, el, r) triple (see worldToScreen for
+   *  the polar version). Callers must pre-rotate azimuth by viewRotationDeg
+   *  themselves (same convention worldToScreen uses internally). */
+  function projectXYZ(x, y, z) {
+    var p = isoProject(x, y, z);
+    return { x: CX + p.sx * SCALE, y: CY + p.sy * SCALE };
+  }
+
+  /** Small solid "cabinet" marker at a speaker's real position — wide edge
+   *  attached to the sphere (the cabinet's front baffle, facing the
+   *  listening position), narrow edge pointing outward — same orientation
+   *  convention as the flat view's own speaker icons (see circle.js).
+   *  Unlike the flat view, this shows EVERY speaker regardless of elevation
+   *  (see the draw() call site) — the whole point of the 3D view is that it
+   *  can actually place overhead/floor speakers at their real height
+   *  instead of pretending they're at ear level.
+   *
+   *  Built directly in 3D so it stays correctly oriented at any elevation,
+   *  including the poles: the "width" axis uses the azimuthal tangent
+   *  direction (cos(az), -sin(az), 0), which stays unit-length regardless
+   *  of elevation — an azimuth-ANGLE-offset approach would instead
+   *  degenerate to zero width at the poles (all azimuths converge there).
+   *  A third local axis (the elevation tangent, also always unit length)
+   *  extrudes the flat trapezoid into a small solid block. All 6 faces of
+   *  that block are drawn — not just whichever face happens to point at
+   *  the camera for one particular view angle — because the view orbits
+   *  freely; a fixed subset of faces would leave the icon looking hollow
+   *  or missing a side from other rotations. Each face is depth-sorted
+   *  (same painter's-algorithm metric as the arcs below) so nearer faces
+   *  correctly cover farther ones regardless of orientation, and shaded
+   *  with a different opacity of black per face type to read as one solid
+   *  object rather than a flat cutout floating in space. */
+  var SPK_HW_NEAR = 0.038, SPK_HW_FAR = 0.018;
+  var SPK_HALF_LEN = 0.03;    // half the near↔far length, centred on the speaker's real distance
+  var SPK_HALF_HEIGHT = 0.045; // half the bottom↔top height, centred on the speaker's own tangent plane
+  var SPK_SURFACE_OFFSET = 0.15; // pushes the icon's centre out past the sphere surface, so it reads
+                                  // as a separate object sitting near the speaker rather than embedded in it —
+                                  // scaled by the speaker's own dist below, so a farther/closer speaker's
+                                  // icon moves out/in proportionally too
+  function renderSpeakerIcon(sp) {
+    var azR   = norm(sp.az - viewRotationDeg);
+    var azRad = toRad(azR);
+    var elRad = toRad(sp.el);
+    var tx = Math.cos(azRad), ty = -Math.sin(azRad); // azimuthal tangent (width axis)
+    var nx = -Math.sin(elRad) * Math.sin(azRad),     // elevation tangent (height axis) —
+        ny = -Math.sin(elRad) * Math.cos(azRad),     // always unit length too, perpendicular
+        nz =  Math.cos(elRad);                       // to both the radial and tangent axes
+    // Centred on the speaker's actual (az, el) direction, offset out past the
+    // real sphere radius (see SPK_SURFACE_OFFSET) — near/far straddle that
+    // centre rather than starting there, so the real position sits at the
+    // icon's centre, not at one of its faces.
+    var centerR = FLOOR_R + SPK_SURFACE_OFFSET * sp.dist;
+    var pNear = polarToCartesian(azR, sp.el, centerR - SPK_HALF_LEN);
+    var pFar  = polarToCartesian(azR, sp.el, centerR + SPK_HALF_LEN);
+    function base(p, amt) { return { x: p.x + tx * amt, y: p.y + ty * amt, z: p.z }; }
+    function extrude(p, amt) { return { x: p.x + nx * amt, y: p.y + ny * amt, z: p.z + nz * amt }; }
+    function proj(p) { return projectXYZ(p.x, p.y, p.z); }
+
+    var m1 = base(pNear, -SPK_HW_NEAR), m2 = base(pNear, SPK_HW_NEAR);
+    var m3 = base(pFar,   SPK_HW_FAR),  m4 = base(pFar, -SPK_HW_FAR);
+    var b1 = extrude(m1, -SPK_HALF_HEIGHT), b2 = extrude(m2, -SPK_HALF_HEIGHT);
+    var b3 = extrude(m3, -SPK_HALF_HEIGHT), b4 = extrude(m4, -SPK_HALF_HEIGHT);
+    var t1 = extrude(m1,  SPK_HALF_HEIGHT), t2 = extrude(m2,  SPK_HALF_HEIGHT);
+    var t3 = extrude(m3,  SPK_HALF_HEIGHT), t4 = extrude(m4,  SPK_HALF_HEIGHT);
+
+    function face(pts, fillOpacity) {
+      var depth = pts.reduce(function (sum, p) { return sum + (p.y - p.z); }, 0) / pts.length;
+      var d = pts.map(proj).map(function (p) { return p.x.toFixed(2) + ',' + p.y.toFixed(2); }).join(' ');
+      return { depth: depth, svg: '<polygon points="' + d + '" fill="#000" fill-opacity="' + fillOpacity + '" pointer-events="none"/>' };
+    }
+    // All 6 faces of the block — bottom, top, both end caps (wide/narrow),
+    // both long sides — depth-sorted (farthest first, nearest last) so the
+    // ones actually facing the camera always end up on top, whichever way
+    // the view is currently rotated. Same relative shading as before,
+    // scaled down so the darkest face tops out at 0.3 — mostly-transparent
+    // black, not solid.
+    var faces = [
+      face([b1, b2, b3, b4], 0.30), // bottom
+      face([t1, t2, t3, t4], 0.15), // top
+      face([b1, b2, t2, t1], 0.26), // near end cap (wide)
+      face([b3, b4, t4, t3], 0.26), // far end cap (narrow)
+      face([b2, b3, t3, t2], 0.21), // side
+      face([b4, b1, t1, t4], 0.21), // side
+    ];
+    faces.sort(function (a, b) { return a.depth - b.depth; });
+    return faces.map(function (f) { return f.svg; }).join('');
   }
 
   function renderFootprint(arc, color) {
@@ -469,18 +563,35 @@
     var hovIdx = cs.hovered;
     var parts  = [renderSphereScaffold()];
 
-    // Painter's algorithm: farther arcs drawn first, nearer ones on top
+    // Painter's algorithm: farther things drawn first, nearer ones on top —
+    // arcs AND speaker icons share this single depth-sorted pass, so a
+    // speaker that's actually nearer the camera than a zone's surface
+    // (or vice versa) occludes correctly instead of one layer always
+    // winning regardless of true depth.
     var active = [];
     cs.arcs.forEach(function (arc, i) {
       if (!isArcOn(arc)) return;
       var cent  = norm(arc.left + arcSpan(arc.left, arc.right) / 2);
       var midEl = (arc.heightMin + arc.heightMax) / 2;
       var c = polarToCartesian(norm(cent - viewRotationDeg), midEl, FLOOR_R);
-      active.push({ arc: arc, idx: i, depth: c.y - c.z });
+      active.push({ type: 'arc', arc: arc, idx: i, depth: c.y - c.z });
     });
+    if (cs.showSpeakers && window.RigAPI && window.RigAPI.getSpeakerPositions) {
+      // Only the speaker(s) belonging to the currently selected subgroup(s)
+      // — same filter the flat view applies (see drawSpeakerIcons in
+      // circle.js), so both views always show the same set.
+      var selected = (window.ArcsAPI && window.ArcsAPI.getSelectedSubgroups)
+        ? window.ArcsAPI.getSelectedSubgroups() : null;
+      window.RigAPI.getSpeakerPositions().forEach(function (sp) {
+        if (selected && selected.indexOf(sp.subsetTag) === -1) return;
+        var c = polarToCartesian(norm(sp.az - viewRotationDeg), sp.el, FLOOR_R);
+        active.push({ type: 'speaker', sp: sp, depth: c.y - c.z });
+      });
+    }
     active.sort(function (a, b) { return a.depth - b.depth; });
 
     active.forEach(function (item) {
+      if (item.type === 'speaker') { parts.push(renderSpeakerIcon(item.sp)); return; }
       var color = window.ARC_COLORS[item.idx];
       var isHov = item.idx === hovIdx;
       // The colored surface is always visible; the dashed reference lines

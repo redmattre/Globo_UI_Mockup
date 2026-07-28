@@ -745,6 +745,9 @@
         // Persist the selection into the current pattern preset
         window.ArcsAPI.autosave();
       }
+      // The speaker illustrations (both views) only show the currently
+      // selected subgroup's speakers — see drawSpeakerIcons in circle.js.
+      if (window.CircleAPI) window.CircleAPI.draw();
     });
 
     document.addEventListener('click', (e) => {
@@ -1141,6 +1144,17 @@
       ?.addEventListener('click', function () {
         this.classList.toggle('active');
         if (window.ArcsAPI) window.ArcsAPI.autosave();
+      });
+
+    // Speaker-illustration toggle — shared flag read by both circle.js's
+    // flat view and circle-iso.js's isometric view (see CircleState.showSpeakers).
+    document.getElementById('speaker-viz-toggle')
+      ?.addEventListener('click', function () {
+        var cs = window.CircleState;
+        if (!cs) return;
+        cs.showSpeakers = !cs.showSpeakers;
+        this.classList.toggle('active', cs.showSpeakers);
+        if (window.CircleAPI) window.CircleAPI.draw();
       });
   }
 

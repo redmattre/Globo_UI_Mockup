@@ -43,6 +43,7 @@
     heightReadPos: 0,  // 0–1: H readhead's position within whichever arc's height range the sound object is azimuthally inside right now
     module:        'perimetro',
     ghostOpposition: 'origine',
+    showSpeakers: false, // toggled by #speaker-viz-toggle — shared by both the flat and isometric views, off by default
   };
 
   /* ── SVG constants ──────────────────────────────────────────────────────── */
@@ -408,6 +409,54 @@
     parent.appendChild(g);
   }
 
+  /* ── Speaker illustrations (perimeter rig, read-only decoration) ─────────
+     Small trapezoid "cabinet" markers around the outside of the circle, at
+     each speaker's real azimuth — wide edge facing the circle (the cabinet's
+     front baffle, facing the listening position), narrow edge pointing out.
+     Only speakers near the horizon (elevation 0–5°) are shown here — the
+     flat view has no way to show height, so drawing the overhead/floor
+     speakers here too would just misrepresent them as being at ear level.
+     Those still show up in the isometric view (see circle-iso.js), which
+     can actually place them at their real height.
+     Distance also pushes the icon further from (or closer to) the circle —
+     dist=1 (the rig's reference distance) sits at the original offset, a
+     farther/closer speaker's icon moves out/in proportionally. */
+  var SPK_HW_NEAR = 3.25, SPK_HW_FAR = 1.6, SPK_BASE_OFFSET = 6, SPK_HALF_SPAN = 3;
+  function speakerIconPoints(azimuthDeg, dist) {
+    var rad  = toRad(azimuthDeg);
+    var sinA = Math.sin(rad), cosA = Math.cos(rad);
+    function at(u, r) {
+      return { x: CX + r * sinA + u * cosA, y: CY - r * cosA + u * sinA };
+    }
+    var center = SPK_BASE_OFFSET * dist;
+    return [
+      at(-SPK_HW_NEAR, R + center - SPK_HALF_SPAN),
+      at( SPK_HW_NEAR, R + center - SPK_HALF_SPAN),
+      at( SPK_HW_FAR,  R + center + SPK_HALF_SPAN),
+      at(-SPK_HW_FAR,  R + center + SPK_HALF_SPAN),
+    ];
+  }
+
+  function drawSpeakerIcons(svg) {
+    if (!window.CircleState.showSpeakers) return;
+    if (!window.RigAPI || !window.RigAPI.getSpeakerPositions) return;
+    var speakers = window.RigAPI.getSpeakerPositions();
+    // Only the speaker(s) belonging to the currently selected subgroup(s) —
+    // the illustration should reflect who's actually being driven, same
+    // idea as the header's own subgroup badge/menu.
+    var selected = (window.ArcsAPI && window.ArcsAPI.getSelectedSubgroups)
+      ? window.ArcsAPI.getSelectedSubgroups() : null;
+    speakers.forEach(function (sp) {
+      if (sp.el < 0 || sp.el > 5) return; // perimeter only — see comment above
+      if (selected && selected.indexOf(sp.subsetTag) === -1) return;
+      var pts = speakerIconPoints(sp.az, sp.dist);
+      svg.appendChild(el('polygon', {
+        points: pts.map(function (p) { return p.x.toFixed(2) + ',' + p.y.toFixed(2); }).join(' '),
+        fill: '#000', 'fill-opacity': '0.3', 'pointer-events': 'none',
+      }));
+    });
+  }
+
   /* ── Main draw function ─────────────────────────────────────────────────── */
   function draw() {
     var svg = document.getElementById('nav-circle');
@@ -423,6 +472,9 @@
 
     /* 2 ── Main circle outline (pointer-events:none) */
     svg.appendChild(el('circle', { cx: CX, cy: CY, r: R, fill: 'none', stroke: '#1A1917', 'stroke-width': '1', 'pointer-events': 'none' }));
+
+    /* 2b ── Speaker illustrations (perimeter rig) */
+    drawSpeakerIcons(svg);
 
     /* 3 ── Ghost arc (Traversa mode — only while an arc is actively hovered) */
     if (cs.module === 'traversa' && hovIdx >= 0) {

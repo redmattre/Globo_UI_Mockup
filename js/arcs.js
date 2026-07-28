@@ -558,6 +558,7 @@
     autosave:             autosave,
     applyReadhead:        applyReadhead,
     refreshSubgroupBadge: updateSubgroupLetters,
+    getSelectedSubgroups: getSelectedSubgroups,
     getInterpolationTime: function ()   { return interpolationMs; },
     setInterpolationTime: function (ms) { interpolationMs = Math.max(0, ms); },
   };

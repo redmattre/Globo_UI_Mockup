@@ -1,7 +1,8 @@
 - [x] Attaccare tutte 32 le casse
 - [ ] Fare in modo che allo spegnimento venga mantenuta la posizione raggiunta, così da assicurare un passaggio smooth tra i paradigmi e il controllo manuale
 - [ ] Aggiungere ad aleatorio e alle traverse la feature di rendere discreto e basato sulle posizioni degli altoparlanti il random
-- [ ] Costruire paradigma segmenti
+- [x] Costruire paradigma segmenti
+	- [ ] bozza da rivedere (sopratutto per la quantità di controlli)
 - [ ] Costruire paradigma traverse
 - [ ] Costruire encoding Ambisonic
 - [ ] Costruire algoritmo Direct
