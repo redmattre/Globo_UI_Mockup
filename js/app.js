@@ -13,7 +13,7 @@
     secondaryOpen:   false,
     instanceNumber:  1,
     slaveGroup:      2,     // 0 = standalone; N = N diagonal lines shown
-    gsState: { audio: 'global', rig: 'global', generali: 'global' },
+    gsState: { audio: 'global', rig: 'global', generali: 'global', network: 'global' },
     readheadPos:     0.,  // 0 to 1
     activeReadhead:  'A',    // which readhead's ease settings are shown/edited — the A/H
                              // switch that used to change this is gone (see initReadhead
@@ -78,6 +78,17 @@
     // Diretto spreads sound statically over the drawn arcs — no position to
     // read, no spat algorithm to pick, nothing to transport.
     setDirettoMode(name === 'diretto');
+    // Diretto (paradigm) and Direct (spat algorithm) are inseparable — one
+    // implies the other, in both directions. Guarded on the current spat so
+    // this doesn't loop back and forth with setSpatChoice's own matching
+    // guard below. Leaving Diretto for any other paradigm means Direct no
+    // longer makes sense either — falls back to VBAP rather than leaving
+    // the spat selector stuck showing "Direct" for an unrelated paradigm.
+    if (name === 'diretto') {
+      if (currentSpatKey() !== 'direct') setSpatChoice('direct');
+    } else if (currentSpatKey() === 'direct') {
+      setSpatChoice('vbap');
+    }
     // Skipped while a preset is being restored — it would otherwise overwrite
     // the very slot we're in the middle of applying.
     if (!(opts && opts.skipAutosave) && window.ArcsAPI) window.ArcsAPI.autosave();
@@ -121,7 +132,7 @@
   function renderSettings(tab) {
     const body = document.getElementById('settings-body');
     if (!body) return;
-    const map = { audio: renderAudio, rig: renderRig, generali: renderGenerali };
+    const map = { audio: renderAudio, rig: renderRig, generali: renderGenerali, network: renderNetwork };
     const fn = map[tab];
     if (fn) {
       body.innerHTML = fn();
@@ -130,32 +141,37 @@
   }
 
   /* ── Audio tab ─────────────────────────────────────────────────────────── */
+  // Same order as the main-panel spat dropdown (VBAP, DBAP, AmbiV, Direct).
   const AUDIO_TYPES = [
-    { key: 'dbap',       label: 'DBAP' },
     { key: 'vbap',       label: 'VBAP' },
+    { key: 'dbap',       label: 'DBAP' },
     { key: 'ambisonics', label: 'AmbiV' },
-    { key: 'soundscape', label: 'Soundscape' },
+    { key: 'direct',     label: 'Direct' },
   ];
 
-  // Mockup parameters — distinct per algorithm, purely visual (no real DSP behind them)
+  // Parameters per algorithm — still mockup (no real DSP behind them), but
+  // now the actual parameter set for each, not placeholders. `type` picks
+  // the control: 'slider' (range + numeric readout), 'numbox' (a plain
+  // number input — for values with no natural 0–100 range, like a
+  // millisecond time), or 'toggle' (a small set of mutually exclusive
+  // choices, same look as the Generali tab's global/stray switch).
   const AUDIO_PARAMS = {
-    dbap: [
-      { id: 'au-rolloff', name: 'Rolloff', min: 0, max: 100, val: 60, unit: '%' },
-      { id: 'au-blur',    name: 'Blur',    min: 0, max: 100, val: 20, unit: '%' },
-      { id: 'au-weight',  name: 'Weight',  min: 0, max: 100, val: 50, unit: '%' },
-    ],
     vbap: [
-      { id: 'au-spread', name: 'Spread', min: 0, max: 100, val: 30, unit: '%' },
-      { id: 'au-focus',  name: 'Focus',  min: 0, max: 100, val: 70, unit: '%' },
-      { id: 'au-fade',   name: 'Fade',   min: 0, max: 100, val: 40, unit: '%' },
+      { type: 'slider', id: 'au-smooth', name: 'Smooth', min: 0, max: 1,  step: 0.01, val: 0.5, unit: '' },
+      { type: 'slider', id: 'au-spread', name: 'Spread', min: 0, max: 70, step: 1,    val: 20,  unit: '°' },
+    ],
+    dbap: [
+      { type: 'slider', id: 'au-focus', name: 'Focus', min: 0, max: 100, step: 1, val: 50, unit: '%' },
     ],
     ambisonics: [
-      { id: 'au-order', name: 'Order', min: 1, max: 7, val: 3, unit: '' },
+      { type: 'slider', id: 'au-order',  name: 'Order',  min: 1, max: 7, step: 1, val: 3, unit: '' },
+      { type: 'toggle', id: 'au-output', name: 'Output', val: 'decoder', options: [
+        { key: 'decoder', label: 'Decoder' },
+        { key: 'bformat', label: 'B-format' },
+      ] },
     ],
-    soundscape: [
-      { id: 'au-gain',    name: 'Gain',     min: 0, max: 100, val: 80, unit: '' },
-      { id: 'au-doppler', name: 'Doppler',  min: 0, max: 100, val: 0,  unit: '%' },
-      { id: 'au-air',     name: 'Air Abs.', min: 0, max: 100, val: 20, unit: '%' },
+    direct: [
+      { type: 'numbox', id: 'au-smooth-ms', name: 'Smooth', min: 0, max: 10000, step: 10, val: 50, unit: 'ms' },
     ],
   };
 
@@ -165,12 +181,33 @@
   }
 
   function renderAudioParams(key) {
-    return (AUDIO_PARAMS[key] || []).map(p => `
-      <div class="param-row">
-        <span class="param-name">${p.name}</span>
-        <input type="range" class="param-slider" id="${p.id}" min="${p.min}" max="${p.max}" value="${p.val}" data-unit="${p.unit}">
-        <span class="param-value mono" id="${p.id}-val">${p.val}${p.unit}</span>
-      </div>`).join('');
+    return (AUDIO_PARAMS[key] || []).map(p => {
+      if (p.type === 'numbox') {
+        return `
+          <div class="param-row">
+            <span class="param-name">${p.name}</span>
+            <input type="number" class="che-input param-numbox mono" id="${p.id}" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.val}">
+            <span class="param-value mono">${p.unit}</span>
+          </div>`;
+      }
+      if (p.type === 'toggle') {
+        return `
+          <div class="param-row">
+            <span class="param-name">${p.name}</span>
+            <div class="gs-toggle param-toggle" id="${p.id}">
+              ${p.options.map(o =>
+                `<button class="gs-btn${o.key === p.val ? ' active' : ''}" data-value="${o.key}">${o.label}</button>`
+              ).join('')}
+            </div>
+          </div>`;
+      }
+      return `
+        <div class="param-row">
+          <span class="param-name">${p.name}</span>
+          <input type="range" class="param-slider" id="${p.id}" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.val}" data-unit="${p.unit}">
+          <span class="param-value mono" id="${p.id}-val">${p.val}${p.unit}</span>
+        </div>`;
+    }).join('');
   }
 
   function renderAudio() {
@@ -236,6 +273,11 @@
       </div>`;
   }
 
+  /* ── Network tab (placeholder — nothing here yet) ─────────────────────── */
+  function renderNetwork() {
+    return '';
+  }
+
   /* ── Bind settings events (sliders, spat list, matrix) ─────────────────── */
   function bindRangeSliders(container) {
     container.querySelectorAll('input[type="range"]').forEach(slider => {
@@ -246,11 +288,26 @@
     });
   }
 
+  /** Binds the audio params' toggle-type controls (e.g. Ambisonics'
+   *  decoder/B-format switch) — same click-to-select-one pattern as
+   *  .gs-toggle elsewhere, just scoped to whichever .param-toggle it's in. */
+  function bindParamToggles(container) {
+    container.querySelectorAll('.param-toggle').forEach(toggle => {
+      toggle.querySelectorAll('.gs-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          toggle.querySelectorAll('.gs-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+    });
+  }
+
   function bindSettingsEvents(tab) {
     const body = document.getElementById('settings-body');
     if (!body) return;
 
     bindRangeSliders(body);
+    bindParamToggles(body);
 
     // Spat list (Audio tab) — each type shows its own mockup parameters
     if (tab === 'audio') {
@@ -264,6 +321,7 @@
           if (paramsEl) {
             paramsEl.innerHTML = renderAudioParams(item.dataset.spat);
             bindRangeSliders(paramsEl);
+            bindParamToggles(paramsEl);
           }
         });
       });
@@ -809,6 +867,17 @@
       choice.classList.add('active');
       btn.textContent = choice.textContent;
     });
+    // Direct (spat algorithm) and Diretto (paradigm) are inseparable — one
+    // implies the other, in both directions (mirrors switchModule's own
+    // guard above; same reasoning, so it doesn't loop back and forth).
+    // Picking Direct forces the paradigm to Diretto; picking anything else
+    // while Diretto is still active falls back to Perimetro, since Diretto
+    // without the Direct algorithm doesn't make sense either.
+    if (key === 'direct') {
+      if (state.currentModule !== 'diretto') switchModule('diretto');
+    } else if (state.currentModule === 'diretto') {
+      switchModule('perimetro');
+    }
   }
 
   function initSpatSelect() {
@@ -1002,32 +1071,92 @@
     const lblMax   = document.getElementById('speed-max-val');
     if (!track || !fill || !thumbMin || !thumbMax || !lblMin || !lblMax) return;
 
-    const ABS_MIN = 0, ABS_MAX = 200, MIN_GAP = 5;
+    const ABS_MIN = 0, ABS_MAX = 10000, MIN_GAP = 5;
+    // Exponential taper: thumb position maps to value as t^CURVE (and back
+    // as t^(1/CURVE)) instead of linearly. With CURVE > 1, the low end of
+    // the range gets more screen space per unit of value (finer control
+    // over small numbers) and the high end gets less (coarser control —
+    // the same drag distance sweeps through a much wider span up there).
+    const CURVE = 5.2;
+    function valueToT(v) {
+      const norm = Math.max(0, Math.min(1, (v - ABS_MIN) / (ABS_MAX - ABS_MIN)));
+      return Math.pow(norm, 1 / CURVE);
+    }
+    function tToValue(t) {
+      return ABS_MIN + (ABS_MAX - ABS_MIN) * Math.pow(Math.max(0, Math.min(1, t)), CURVE);
+    }
     let min = 40, max = 120;
     let locked     = false; // true while Perimetro is the active module
     let preLockMin = min;   // remembered min, restored when unlocked
     let dragging   = null;  // 'min' | 'max' | null
+    let merged      = false;      // true when double-click has collapsed min/max into one thumb
+    let preMergeMin = min, preMergeMax = max; // remembered split values, restored when un-merged
+
+    /** Below 1000 it's milliseconds as a plain integer; at/above 1000 it's
+     *  seconds with two decimals — same value, just switching how it's
+     *  read once it's big enough that seconds are the more natural unit.
+     *  No "ms"/"s" suffix: which one it is is implicit from the format. */
+    function formatSpeedVal(v) {
+      const rounded = Math.round(v);
+      return rounded >= 1000 ? (rounded / 1000).toFixed(2) : String(rounded);
+    }
 
     function render() {
-      const pMin = ((min - ABS_MIN) / (ABS_MAX - ABS_MIN)) * 100;
-      const pMax = ((max - ABS_MIN) / (ABS_MAX - ABS_MIN)) * 100;
+      const pMin = valueToT(min) * 100;
+      const pMax = valueToT(max) * 100;
       thumbMin.style.left = pMin + '%';
       thumbMax.style.left = pMax + '%';
       fill.style.left  = pMin + '%';
       fill.style.width = (pMax - pMin) + '%';
-      lblMin.textContent = Math.round(min);
-      lblMax.textContent = Math.round(max);
+      lblMin.textContent = formatSpeedVal(min);
+      lblMax.textContent = formatSpeedVal(max);
       thumbMin.classList.toggle('locked', locked);
+    }
+
+    /** Double-click anywhere on the track (or either thumb, since both
+     *  bubble dblclick up to it) collapses the two handles into one at
+     *  their current midpoint, or restores the two independent values it
+     *  remembered from just before merging. Min/max stay equal while
+     *  merged — see the CSS .speed-thumb.merged-hidden rule, which just
+     *  hides the redundant second thumb, not the label showing its value
+     *  (both sides keep displaying it, per spec). Disabled while locked
+     *  (Perimetro) — that mode already dictates the min handle on its own. */
+    function toggleMerge() {
+      if (locked) return;
+      merged = !merged;
+      if (merged) {
+        preMergeMin = min;
+        preMergeMax = max;
+        const mid = Math.round((min + max) / 2);
+        min = mid;
+        max = mid;
+      } else {
+        min = preMergeMin;
+        max = preMergeMax;
+        if (max - min < MIN_GAP) max = Math.min(ABS_MAX, min + MIN_GAP);
+      }
+      thumbMax.classList.toggle('merged-hidden', merged);
+      render();
+      if (window.ArcsAPI) window.ArcsAPI.autosave();
     }
 
     function posFromEvent(e) {
       const rect = track.getBoundingClientRect();
       const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-      return ABS_MIN + (x / rect.width) * (ABS_MAX - ABS_MIN);
+      return tToValue(x / rect.width);
     }
 
     function moveTo(val) {
-      if (dragging === 'min' && !locked) {
+      // Merged: min and max move together as one value, in either
+      // direction — no MIN_GAP between them to enforce since they're
+      // meant to stay equal, and no "which handle is this" to resolve
+      // (the hidden max thumb never receives its own drag anyway).
+      if (merged) {
+        const v = Math.max(ABS_MIN, Math.min(val, ABS_MAX));
+        min = v;
+        max = v;
+        preLockMin = v;
+      } else if (dragging === 'min' && !locked) {
         min = Math.max(ABS_MIN, Math.min(val, max - MIN_GAP));
         preLockMin = min;
       } else if (dragging === 'max') {
@@ -1052,6 +1181,11 @@
       moveTo(val);
       e.preventDefault();
     });
+    // Bubbles up from either thumb too, since both are children of the track.
+    track.addEventListener('dblclick', e => {
+      toggleMerge();
+      e.preventDefault();
+    });
     window.addEventListener('mousemove', e => { if (dragging) moveTo(posFromEvent(e)); });
     window.addEventListener('mouseup',   () => {
       if (dragging && window.ArcsAPI) window.ArcsAPI.autosave();
@@ -1072,12 +1206,27 @@
           min = Math.max(ABS_MIN, Math.min(v.min, max - MIN_GAP));
           preLockMin = min;
         }
+        // A restored preset's min/max come in independently — if they landed
+        // on genuinely different values while a merge was still in effect,
+        // that'd leave the (still-hidden) max thumb out of sync with its
+        // real value. Exit merge rather than risk that.
+        if (merged && min !== max) {
+          merged = false;
+          thumbMax.classList.remove('merged-hidden');
+        }
         render();
       },
       setLocked(next) {
         if (next === locked) return;
         locked = next;
         if (locked) {
+          // Perimetro's own lock already dictates the min handle — merging
+          // on top of that would leave the hidden max thumb desynced the
+          // moment min snaps to ABS_MIN below.
+          if (merged) {
+            merged = false;
+            thumbMax.classList.remove('merged-hidden');
+          }
           preLockMin = min;
           min = ABS_MIN;
         } else {
@@ -1136,6 +1285,10 @@
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && state.secondaryOpen) closeSecondary();
     });
+
+    // This is a plugin UI, not a web page — the browser's native right-click
+    // menu (Inspect, Reload, Back...) has nothing relevant to offer here.
+    document.addEventListener('contextmenu', e => e.preventDefault());
 
     // Buttons don't keep keyboard focus after a click — CSS alone
     // (outline:none) only hides the ring, it doesn't stop the button from

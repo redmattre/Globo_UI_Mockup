@@ -414,7 +414,6 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 }
 .module-choice:hover:not(:disabled) { background: var(--ink-fill); }
 .module-choice.active { background: var(--ink-fill); font-weight: 600; }
-.module-choice.future,
 .module-choice:disabled {
   opacity: 0.28;
   pointer-events: none;
@@ -1514,6 +1513,20 @@ body.reordering-preset, body.reordering-preset * { cursor: grabbing !important; 
   height: 2px;
   background: var(--border-strong);
 }
+/* Generous invisible hit area — the visible track is only 2px tall, far
+   thinner than a comfortable click/double-click target. A ::before still
+   counts as part of .speed-track for event purposes (its target resolves
+   to the real element), so drag/dblclick anywhere in this taller zone
+   works exactly like clicking the thin line itself, not just wherever a
+   thumb happens to be sitting. */
+.speed-track::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  left: 0;
+  right: 0;
+}
 .speed-fill {
   position: absolute;
   top: 0;
@@ -1535,6 +1548,10 @@ body.reordering-preset, body.reordering-preset * { cursor: grabbing !important; 
   background: var(--border-strong);
   cursor: not-allowed;
 }
+/* Double-click merges min/max into one value (see toggleMerge in app.js) —
+   only the redundant second thumb hides; the labels on both sides keep
+   showing the (now-shared) value. */
+.speed-thumb.merged-hidden { display: none; }
 
 /* ── TRANSPORT GROUP (loop / direction / play, params footer) ────────────────── */
 .transport-group {

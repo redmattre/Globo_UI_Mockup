@@ -41,7 +41,7 @@
               <button class="spat-choice active"        data-spat="vbap">VBAP</button>
               <button class="spat-choice" data-spat="dbap">DBAP</button>
               <button class="spat-choice"        data-spat="ambisonics">AmbiV</button>
-              <button class="spat-choice"        data-spat="soundscape">Direct</button>
+              <button class="spat-choice"        data-spat="direct">Direct</button>
             </div>
           </div>
           <button class="logo-btn" id="logo-btn" title="Impostazioni"><svg class="logo-ico" viewBox="0 0 18 18" aria-hidden="true" style="fill: #505050"><line x1="2.5" y1="5" x2="15.5" y2="5" stroke="currentColor" stroke-width="1"/><line x1="2.5" y1="9" x2="15.5" y2="9" stroke="currentColor" stroke-width="1"/><line x1="2.5" y1="13" x2="15.5" y2="13" stroke="currentColor" stroke-width="1"/><circle cx="11" cy="5" r="1.4" fill="var(--surface)" stroke="currentColor" stroke-width="1"/><circle cx="6" cy="9" r="1.4" fill="var(--surface)" stroke="currentColor" stroke-width="1"/><circle cx="12" cy="13" r="1.4" fill="var(--surface)" stroke="currentColor" stroke-width="1"/></svg></button>
@@ -238,10 +238,9 @@
             </button>
             <div class="module-menu" id="module-menu" hidden>
               <button class="module-choice active" data-module="perimetro">Perimetro</button>
+              <button class="module-choice"        data-module="aleatorio">Aleatorio</button>
               <button class="module-choice"        data-module="segmento">Segmento</button>
               <button class="module-choice"        data-module="traversa">Traversa</button>
-              <button class="module-choice"        data-module="aleatorio">Aleatorio</button>
-              <button class="module-choice future" disabled title="In arrivo">Pioggia</button>
               <button class="module-choice"        data-module="diretto">Diretto</button>
             </div>
           </div>
@@ -251,7 +250,7 @@
                  Perimetro has only one speed, so the min handle auto-locks to 0. -->
             <div class="speed-range" id="speed-range">
               <span class="speed-val mono" id="speed-min-val">40</span>
-              <div class="speed-track" id="speed-track">
+              <div class="speed-track" id="speed-track" title="Doppio click per unire/separare i due limiti">
                 <div class="speed-fill" id="speed-fill"></div>
                 <div class="speed-thumb" id="speed-thumb-min" title="Velocità minima"></div>
                 <div class="speed-thumb" id="speed-thumb-max" title="Velocità massima"></div>
@@ -314,6 +313,7 @@
           <button class="tab active" data-settings="rig"      role="tab">Rig</button>
           <button class="tab"        data-settings="audio"    role="tab">Audio</button>
           <button class="tab"        data-settings="generali" role="tab">Generali</button>
+          <button class="tab"        data-settings="network"  role="tab">Network</button>
         </nav>
         <!-- Right side: spat selector (mirrors main panel) + ψ close button + instance badge -->
         <div class="header-right">
@@ -323,7 +323,7 @@
               <button class="spat-choice active" data-spat="vbap">VBAP</button>
               <button class="spat-choice" data-spat="dbap">DBAP</button>
               <button class="spat-choice" data-spat="ambisonics">AmbiV</button>
-              <button class="spat-choice" data-spat="soundscape">Direct</button>
+              <button class="spat-choice" data-spat="direct">Direct</button>
             </div>
           </div>
           <button class="logo-btn active-logo" id="logo-btn-2" title="Chiudi (ESC)"><svg class="logo-ico" viewBox="0 0 18 18" aria-hidden="true"><line x1="2.5" y1="5" x2="15.5" y2="5" stroke="currentColor" stroke-width="1"/><line x1="2.5" y1="9" x2="15.5" y2="9" stroke="currentColor" stroke-width="1"/><line x1="2.5" y1="13" x2="15.5" y2="13" stroke="currentColor" stroke-width="1"/><circle cx="11" cy="5" r="1.4" fill="var(--surface)" stroke="currentColor" stroke-width="1"/><circle cx="6" cy="9" r="1.4" fill="var(--surface)" stroke="currentColor" stroke-width="1"/><circle cx="12" cy="13" r="1.4" fill="var(--surface)" stroke="currentColor" stroke-width="1"/></svg></button>
