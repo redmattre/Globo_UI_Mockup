@@ -244,7 +244,31 @@ ul { list-style: none; }
   min-height: 0;
 }
 
-/* Readhead bar (bottom of circle section) */
+/* Elevation readhead (H) — a sibling of .height-control itself (not nested
+   inside it), reusing that exact class (see the "height-control el-slider-
+   col" markup) so its track ends up precisely as long as .height-range —
+   same fixed-size button/val stand-ins competing for the same 60%-height
+   box, just invisible. This rule only overrides the gap from
+   .height-control's own 8px margin-right — CHANGE THIS VALUE to move it
+   closer to/further from the height-range slider. */
+.el-slider-col {
+  margin-right: 0px;
+}
+/* Invisible stand-in for .height-control's own .mode-toggle button, same
+   fixed box so the flexible middle row below it doesn't get a bigger
+   share of the column's height than .height-track does in the real one. */
+.el-slider-btn-spacer {
+  width: 2rem;
+  height: 2rem;
+  visibility: hidden;
+}
+
+/* Ease/intensity controls — parked, not deleted (see the HTML comment
+   above #readhead-bar). Hiding the whole bar, not just its contents, so it
+   stops reserving its old var(--rh-h) strip at the bottom of the circle
+   section. The [hidden] attribute selector needs this explicit rule to
+   beat .readhead-bar's own display:flex at equal specificity — same
+   gotcha as .circle-svg[hidden] elsewhere. */
 .readhead-bar {
   flex: 0 0 var(--rh-h);
   display: flex;
@@ -253,6 +277,9 @@ ul { list-style: none; }
   padding: 0 var(--pad-x);
   border-top: 1px solid var(--border);
   background: var(--white);
+}
+#readhead-bar[hidden] {
+  display: none;
 }
 
 /* ── PARAMS SECTION (right column) ─────────────────────────────────────────── */

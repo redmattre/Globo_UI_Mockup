@@ -230,9 +230,10 @@
 .circle-view-controls,
 .circle-view-controls-left {
   position: absolute;
-  /* Anchored to .circle-section (see the HTML comment) — 8px above the
-     readhead bar, the next real visual border below the circle. */
-  bottom: calc(var(--rh-h) + 8px);
+  /* Anchored to .circle-section (see the HTML comment) — same 8px margin
+     .subgroup-select has from the top. .readhead-bar (below the arc
+     buttons) is hidden now, so there's no fixed-height bar left to clear. */
+  bottom: 8px;
   z-index: 5;
   display: flex;
   gap: 6px;
@@ -475,6 +476,13 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   color: var(--text-3);
   line-height: 1;
 }
+/* Invisible duplicates inside .el-slider-col — reserve the exact same
+   vertical space as .height-track's real "90°"/"0°" labels, so the
+   el-slider-track lines up with .height-range without needing a guessed
+   margin. */
+.el-slider-col .height-lbl {
+  visibility: hidden;
+}
 .height-val {
   font-size: var(--sz-xs);
   color: var(--accent);
@@ -536,50 +544,97 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 .rh-force-slider:hover::-moz-range-thumb { background: #000; }
 .param-slider:focus, .rh-force-slider:focus { outline: none; }
 
-/* ── READHEAD BAR ───────────────────────────────────────────────────────────── */
-
-/* Letter toggle (left of the track) — switches which of the two readheads
-   is currently in control (the other one locks, see .rh-marker.dim). */
-.rh-switch-btn {
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
+/* ── AZIMUTH SLIDER (readhead A) — standalone bar above the arc on/off
+   buttons, same thin-track-with-thumb look as .pattern-morph-track. ───────── */
+.az-slider-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  font-size: 8px;
-  font-weight: 700;
-  color: var(--text-2);
-  background: transparent;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-sm);
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  padding: 0 var(--pad-x);
 }
-.rh-switch-btn:hover { background: var(--ink-fill); }
-
-.rh-track-wrap {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  /* padding: 0 2px; */
-  margin-left: .5rem;
-  margin-right: .5rem;
-  min-width: 0;
-}
-
-.rh-track {
+/* Shorter than the full row, but its centre still lands exactly on the
+   circle's own centre (not the row's): centring this fixed-width track
+   together with the .height-control-ghost sibling — same width the ghost
+   already offsets .arc-btn-bar's own centred content by — cancels out to
+   the same centre point regardless of how wide the track itself is. */
+.az-slider-track {
+  flex: 0 0 auto;
+  width: 50%;
+  min-width: 80px;
+  max-width: 240px;
   position: relative;
-  width: 100%;
-  height: 4px;
+  height: .25rem;
   background: var(--border);
-  border-radius: 2px;
+  border-radius: 4px;
   cursor: pointer;
 }
-
-.rh-dots {
+/* Generous invisible hit area — the visible track stays this thin on
+   purpose, but grabbing it shouldn't require pixel-precise aim. A ::before
+   still counts as part of .az-slider-track for click/mousedown purposes
+   (events on it target the real element), so the existing drag handler
+   needs no changes. Only expands the thickness (vertical); the length
+   (horizontal, which the drag math actually reads) is untouched. */
+.az-slider-track::before {
+  content: '';
   position: absolute;
-  inset: 0;
+  top: -8px;
+  bottom: -8px;
+  left: 0;
+  right: 0;
+}
+.az-slider-thumb {
+  position: absolute;
+  top: 50%;
+  width: .5rem;
+  height: .25rem;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--white);
+}
+
+/* ── ELEVATION SLIDER (readhead H) — standalone vertical bar, a sibling of
+   .height-control itself (see .el-slider-col in main.css), same look as the
+   azimuth one above just rotated. Same flex:1-in-a-column sizing
+   .height-range itself uses, so the two end up the same length. */
+.el-slider-track {
+  position: relative;
+  flex: 1;
+  width: .25rem;
+  min-height: 60px;
+  background: var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+/* Same generous invisible hit area as .az-slider-track::before, rotated:
+   expands the thickness (horizontal) only, leaving the length (vertical,
+   which the drag math reads) untouched. */
+.el-slider-track::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  top: 0;
+  bottom: 0;
+}
+.el-slider-thumb {
+  position: absolute;
+  left: 50%;
+  width: .25rem;
+  height: .5rem;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--white);
+}
+
+/* ── READHEAD BAR (ease/intensity controls) — parked, see the HTML comment
+   above #readhead-bar. Kept fully live under the hood, just not shown. ──── */
+.rh-dots {
+  position: relative;
+  height: 4px;
   pointer-events: none;
 }
 .rh-dot {
@@ -592,34 +647,6 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   background: var(--border-strong);
 }
 
-.rh-marker {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -56%);
-  width: 0;
-  height: 0;
-  border-left:  6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top:   9px solid var(--ink);
-  cursor: grab;
-  pointer-events: all;
-  z-index: 2; /* the active marker (no .dim) sits in front of the other one */
-  transition: border-top-color 0.1s;
-}
-.rh-marker:active { cursor: grabbing; }
-.rh-marker:hover  { border-top-color: #000; }
-
-/* Non-active readhead: dimmed, lighter tip, locked, and pushed behind the
-   active one — swapped via the A/H switch. Only the active one can be
-   grabbed or moved via the track. */
-.rh-marker.dim {
-  border-top-color: var(--border-strong);
-  opacity: 0.55;
-  cursor: not-allowed;
-  z-index: 1;
-}
-.rh-marker.dim:hover { border-top-color: var(--border-strong); }
-
 .rh-controls {
   display: flex;
   flex-direction: row;
@@ -627,13 +654,6 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   gap: 5px;
   flex-shrink: 0;
   /* margin-left: 14px; */
-}
-
-.rh-ease-row,
-.rh-force-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .rh-ease-select { position: relative; }
@@ -1316,7 +1336,7 @@ body.rig-viz-rotating, body.rig-viz-rotating * { cursor: grabbing !important; us
   align-items: center;
   padding: 0 var(--pad-x);
   /* border-top: 1px solid var(--border); */
-  margin-bottom: .5rem;
+  margin-bottom: 1.15rem;
   margin-top: .5rem;
   background: var(--surface);
   max-height: fit-content;

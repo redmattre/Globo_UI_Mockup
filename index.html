@@ -98,6 +98,30 @@
               </svg>
             </div>
 
+            <!-- Elevation readhead (H) — own standalone vertical slider, same
+                 thin-track-with-thumb look as the preset morph slider in the
+                 header, just rotated. Top = 1, bottom = 0, matching
+                 .height-range's own top=max/bottom=min sense. A sibling of
+                 .height-control itself, not nested inside it. Reuses
+                 .height-control's own layout class wholesale (see
+                 .el-slider-col's margin-right override in main.css for the
+                 gap between the two) with invisible stand-ins for the
+                 mode-toggle button and the height-val readout, so the
+                 track ends up EXACTLY as long as .height-range — both
+                 columns are now built from the identical recipe of
+                 fixed-size + flexible pieces. -->
+            <div class="height-control el-slider-col">
+              <div class="el-slider-btn-spacer" aria-hidden="true"></div>
+              <div class="height-track">
+                <span class="height-lbl mono" aria-hidden="true">90°</span>
+                <div class="el-slider-track" id="el-slider-track" title="Testina di lettura H (altezza)">
+                  <div class="el-slider-thumb" id="el-slider-thumb"></div>
+                </div>
+                <span class="height-lbl mono" aria-hidden="true">0°</span>
+              </div>
+              <span class="height-val mono" aria-hidden="true" style="visibility: hidden;">0°</span>
+            </div>
+
             <div class="height-control">
               <button class="mode-toggle" id="height-mode-toggle" data-mode="hemisphere" title="Semisfera (clic: sfera)" aria-label="Modalità altezza">
                 <svg class="ico ico-hemi" viewBox="0 0 18 18" aria-hidden="true">
@@ -123,12 +147,10 @@
           </div>
 
           <!-- Sibling of .subgroup-select (both anchored to .circle-section),
-               not nested inside .circle-area — that box's own bottom edge
-               sits well above the readhead bar, since .arc-btn-bar-wrap in
-               between has no border/background of its own to mark where
-               the circle block actually ends visually. Anchoring here
-               instead, right above .readhead-bar, keeps the same 8px margin
-               feel as .subgroup-select has from the top. -->
+               not nested inside .circle-area. Anchored to the bottom of the
+               section with the same 8px margin .subgroup-select has from
+               the top — .readhead-bar (further down) is hidden now, so this
+               no longer needs to sit "above" it specifically. -->
           <div class="circle-view-controls">
             <button class="circle-view-btn mono" id="circle-iso-toggle" title="Vista isometrica (poi trascina la vista per ruotarla)">
               <span id="circle-iso-toggle-label">3D</span>
@@ -145,6 +167,18 @@
             </button>
           </div>
 
+          <!-- Azimuth readhead (A) — own standalone slider, same thin-track-
+               with-thumb look as the preset morph slider in the header.
+               Mirrors .arc-btn-bar-wrap's own centering trick (the ghost
+               spacer) so the track lines up with the circle, not the whole
+               row's width. -->
+          <div class="az-slider-wrap">
+            <div class="az-slider-track" id="az-slider-track" title="Testina di lettura A">
+              <div class="az-slider-thumb" id="az-slider-thumb"></div>
+            </div>
+            <div class="height-control-ghost" aria-hidden="true"></div>
+          </div>
+
           <!-- Arc colour buttons — populated by arcs.js -->
           <div class="arc-btn-bar-wrap">
             <div class="arc-btn-bar" id="arc-btn-bar"></div>
@@ -152,18 +186,14 @@
             <div class="height-control-ghost" aria-hidden="true"></div>
           </div>
 
-          <!-- Readhead: always visible, below the circle -->
-          <div class="readhead-bar" id="readhead-bar">
-            <button class="rh-switch-btn mono" id="rh-switch-btn" title="Testina attiva">A</button>
-
-            <div class="rh-track-wrap">
-              <div class="rh-track" id="rh-track">
-                <div class="rh-dots" id="rh-dots"></div>
-                <div class="rh-marker" id="rh-marker" data-readhead="A" title="Testina di lettura A"></div>
-                <div class="rh-marker" id="rh-marker-h" data-readhead="H" title="Testina di lettura H (altezza)"></div>
-              </div>
-            </div>
-
+          <!-- Ease/intensity controls — parked for now (hidden), not deleted:
+               the A/H readheads got their own dedicated sliders above/in the
+               height column (see .az-slider-wrap / .el-slider-track), so the
+               old shared track + A/H switch they used to share are gone, but
+               this ease panel has no replacement yet and may come back later
+               (see #readhead-bar[hidden] in components.css). -->
+          <div class="readhead-bar" id="readhead-bar" hidden>
+            <div class="rh-dots" id="rh-dots"></div>
             <div class="rh-controls">
               <div class="rh-ease-select" id="rh-ease-select">
                 <button class="rh-ease-btn" id="rh-ease-btn" data-ease="in" title="Curva di easing">
