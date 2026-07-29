@@ -163,6 +163,68 @@
   font-weight: 600;
 }
 
+/* ── PAIR-MODE SELECTOR (top-left of the circle section, mirrors
+   .subgroup-select — mockup only, not wired to any real logic) ─────────────── */
+.pair-select {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pair-btn {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.pair-btn .ico { width: 13px; height: 13px; }
+.pair-btn:hover { background: var(--ink-fill); }
+.pair-btn.open {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.pair-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  box-shadow: 0 2px 8px rgba(26, 25, 23, 0.14);
+}
+.pair-menu[hidden] { display: none; }
+
+.pair-choice {
+  padding: 5px 8px;
+  font-size: var(--sz-base);
+  color: var(--text);
+  text-align: left;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+.pair-choice:hover { background: var(--ink-fill); }
+.pair-choice.active {
+  background: var(--ink-fill);
+  font-weight: 600;
+}
+
 /* ── CIRCLE VIEW CONTROLS (bottom corners of the circle graphic: iso toggle
    bottom-right, speaker-illustration toggle bottom-left) ───────────────────── */
 .circle-view-controls,

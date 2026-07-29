@@ -65,6 +65,18 @@ html, body {
   color: var(--text);
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
+  /* This is a plugin UI, not a document — nothing here is meant to be
+     selected/copied like page text, and a click-drag on a control (or a
+     stray shift-click, see below) shouldn't paint a text selection over
+     the interface. Re-enabled below for the actual text inputs, where
+     normal selection is still expected. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 button {
@@ -75,11 +87,23 @@ button {
   font-size: inherit;
   color: inherit;
   line-height: 1;
+  /* No default browser focus ring on any button in this app — see the
+     specific per-control :focus overrides elsewhere (components.css) for
+     inputs/sliders, which keep their own visible focus styling. */
+  outline: none;
 }
 
 select, input {
   font-family: inherit;
   font-size: inherit;
+}
+
+/* Global catch-all: wherever a focus outline still shows (any control not
+   individually overridden above/in components.css), it's black instead of
+   the browser's default blue. Low-specificity on purpose — any existing
+   per-control :focus rule still wins over this without needing !important. */
+:focus {
+  outline-color: #000;
 }
 
 ul { list-style: none; }

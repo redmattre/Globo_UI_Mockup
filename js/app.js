@@ -878,6 +878,61 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
+     PAIR-MODE SELECTOR  (source single/double-point mode, top-left of the
+     circle — mockup only for now, not wired to any real audio logic. Same
+     dropdown pattern as spat/subgroup/module. The button's own icon swaps
+     between a single circle and a double circle to match the picked mode.)
+  ════════════════════════════════════════════════════════════════════════ */
+  function initPairSelect() {
+    const sel  = document.getElementById('pair-select');
+    const btn  = document.getElementById('pair-btn');
+    const menu = document.getElementById('pair-menu');
+    if (!sel || !btn || !menu) return;
+
+    const ICO_SINGLE = '<svg class="ico" viewBox="0 0 18 18" aria-hidden="true">' +
+      '<circle cx="9" cy="9" r="4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>';
+    const ICO_DOUBLE = '<svg class="ico" viewBox="0 0 18 18" aria-hidden="true">' +
+      '<circle cx="7" cy="9" r="4" fill="none" stroke="currentColor" stroke-width="1.4"/>' +
+      '<circle cx="11" cy="9" r="4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>';
+
+    function close() {
+      menu.hidden = true;
+      btn.classList.remove('open');
+    }
+    function open() {
+      menu.hidden = false;
+      btn.classList.add('open');
+    }
+    function setChoice(key) {
+      const choice = menu.querySelector('.pair-choice[data-pair="' + key + '"]');
+      if (!choice) return;
+      menu.querySelectorAll('.pair-choice').forEach(c => c.classList.remove('active'));
+      choice.classList.add('active');
+      btn.innerHTML = key === 'single' ? ICO_SINGLE : ICO_DOUBLE;
+      btn.title = choice.textContent.trim();
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.hidden ? open() : close();
+    });
+    menu.querySelectorAll('.pair-choice').forEach(choice => {
+      choice.addEventListener('click', () => {
+        setChoice(choice.dataset.pair);
+        close();
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!menu.hidden && !sel.contains(e.target)) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !menu.hidden) close();
+    });
+
+    setChoice('single');
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
      MODULE (PARADIGM) SELECTOR  (custom dropdown, same pattern as spat/
      subgroup/ease — not an OS-native <select>)
   ════════════════════════════════════════════════════════════════════════ */
@@ -1114,6 +1169,15 @@
       if (e.key === 'Escape' && state.secondaryOpen) closeSecondary();
     });
 
+    // Buttons don't keep keyboard focus after a click — CSS alone
+    // (outline:none) only hides the ring, it doesn't stop the button from
+    // staying focused, which is also why Space would otherwise "press" it
+    // again later. Blurring right after the click removes both at once.
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if (btn) btn.blur();
+    });
+
     // Settings tab bar (event delegation)
     document.getElementById('settings-tabs')
       ?.addEventListener('click', e => {
@@ -1217,6 +1281,7 @@
     initResize();
     initSubgroupSelect();
     initSpatSelect();
+    initPairSelect();
     initModuleSelect();
     initEaseSelect();
     initBrandMenu();
