@@ -25,14 +25,12 @@
             "id": "a2259f3b48cea87d",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "excalidraw",
               "state": {
-                "file": "To do RNBO.md",
-                "mode": "source",
-                "source": false
+                "file": "Excalidraw/progettazione.md"
               },
-              "icon": "lucide-file",
-              "title": "To do RNBO"
+              "icon": "excalidraw-icon",
+              "title": "progettazione"
             }
           },
           {
@@ -68,10 +66,12 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
               },
               "icon": "lucide-folder-closed",
-              "title": "Esplora risorse"
+              "title": "Esplora file"
             }
           },
           {
@@ -201,10 +201,10 @@
   },
   "left-ribbon": {
     "hiddenItems": {
-      "switcher:Apri selezione rapida": false,
+      "switcher:Apri selettore rapido": false,
+      "daily-notes:Apri nota giornaliera": false,
       "graph:Apri vista grafo": false,
       "canvas:Crea nuova lavagna": false,
-      "daily-notes:Apri nota del giorno": false,
       "templates:Inserisci modello": false,
       "command-palette:Apri riquadro comandi": false,
       "bases:Crea nuova Base": false,
@@ -213,12 +213,12 @@
   },
   "active": "a2259f3b48cea87d",
   "lastOpenFiles": [
+    "Excalidraw/progettazione.md",
+    "To do RNBO.md",
+    "Excalidraw/Drawing 2026-07-26 10.58.06.excalidraw.md",
     "Considerazioni.md",
     "js/circle.js.tmp.4562.1a0ee3c385ec",
-    "Excalidraw/Drawing 2026-07-26 10.58.06.excalidraw.md",
     "Excalidraw/software_architecture.md",
-    "To do RNBO.md",
-    "Excalidraw/progettazione.md",
     "Transizione VST.md",
     "Riunione 1.md",
     "Architettura_draft.canvas",

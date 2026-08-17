@@ -24,6 +24,12 @@
       H: { type: 'in', intensity: 0 },
     },
     playing:         false,
+    // Spread macro (header, beside the paradigm card) — a mockup value
+    // remembered separately per paradigm, not a single global number, so
+    // switching paradigms shows whatever that one was last left at. See
+    // window.SpreadAPI below and its use in arcs.js's snapshotState (it's
+    // part of the preset, per paradigm, same as the other per-module params).
+    spread: { perimetro: 0, segmento: 0, traversa: 0, aleatorio: 0, diretto: 0 },
   };
 
   const PLAY_CYCLE_MS = 4000; // 0 -> 1 sweep duration, then loops back to 0
@@ -75,6 +81,25 @@
     if (window.ArcsAPI) window.ArcsAPI.updateArcButtons();
     // Perimetro has a single speed — lock the min handle to 0
     if (window.SpeedRangeAPI) window.SpeedRangeAPI.setLocked(name === 'perimetro');
+    // Spread is remembered per paradigm — show whichever value this one
+    // was last left at, not whatever the previous paradigm had.
+    if (window.SpreadAPI) window.SpreadAPI.refresh();
+    // Speed is the same shared control for every paradigm, but Perimetro
+    // and Aleatorio both read it as a "Rate" (of position transfer) rather
+    // than a "Speed" — same range/behaviour, just a different label (+
+    // tooltip for Aleatorio specifically) while either is active.
+    const speedLabel = document.getElementById('speed-label');
+    const speedTrack = document.getElementById('speed-track');
+    if (name === 'aleatorio') {
+      if (speedLabel) speedLabel.textContent = 'Rate';
+      if (speedTrack) speedTrack.title = 'rate of position transfer, double click to set min and max random range';
+    } else if (name === 'perimetro') {
+      if (speedLabel) speedLabel.textContent = 'Rate';
+      if (speedTrack) speedTrack.title = 'Doppio click per unire/separare i due limiti';
+    } else {
+      if (speedLabel) speedLabel.textContent = 'Speed';
+      if (speedTrack) speedTrack.title = 'Doppio click per unire/separare i due limiti';
+    }
     // Diretto spreads sound statically over the drawn arcs — no position to
     // read, no spat algorithm to pick, nothing to transport.
     setDirettoMode(name === 'diretto');
@@ -95,12 +120,16 @@
   }
 
   /** Diretto has no movement: dim + block interaction on the readhead, the
-   *  spat selector and the whole transport footer (speed + loop/direction/play). */
+   *  spat selector, the speed row and play/loop/direction. NOT the paradigm
+   *  dropdown itself (#module-select, inside #transport-card) — that has to
+   *  stay clickable, or there'd be no way back out of Diretto. */
   function setDirettoMode(active) {
-    const readhead = document.getElementById('readhead-bar');
-    const spatSelect = document.getElementById('spat-select');
-    const footer = document.querySelector('.params-footer');
-    [readhead, spatSelect, footer].forEach(el => {
+    const readhead     = document.getElementById('readhead-bar');
+    const spatSelect    = document.getElementById('spat-select');
+    const speedRow      = document.getElementById('params-speed-row');
+    const playBtn        = document.getElementById('transport-toggle');
+    const transportGroup = document.getElementById('transport-group-mini');
+    [readhead, spatSelect, speedRow, playBtn, transportGroup].forEach(el => {
       if (el) el.classList.toggle('disabled-ui', active);
     });
   }
@@ -1069,6 +1098,7 @@
     const thumbMax = document.getElementById('speed-thumb-max');
     const lblMin   = document.getElementById('speed-min-val');
     const lblMax   = document.getElementById('speed-max-val');
+    const unitEl   = document.getElementById('speed-unit');
     if (!track || !fill || !thumbMin || !thumbMax || !lblMin || !lblMax) return;
 
     const ABS_MIN = 0, ABS_MAX = 10000, MIN_GAP = 5;
@@ -1093,12 +1123,12 @@
     let preMergeMin = min, preMergeMax = max; // remembered split values, restored when un-merged
 
     /** Below 1000 it's milliseconds as a plain integer; at/above 1000 it's
-     *  seconds with two decimals — same value, just switching how it's
-     *  read once it's big enough that seconds are the more natural unit.
-     *  No "ms"/"s" suffix: which one it is is implicit from the format. */
+     *  seconds with one decimal (the second one added no useful precision
+     *  at this scale) — same value, just switching how it's read once it's
+     *  big enough that seconds are the more natural unit. */
     function formatSpeedVal(v) {
       const rounded = Math.round(v);
-      return rounded >= 1000 ? (rounded / 1000).toFixed(2) : String(rounded);
+      return rounded >= 1000 ? (rounded / 1000).toFixed(1) : String(rounded);
     }
 
     function render() {
@@ -1110,6 +1140,11 @@
       fill.style.width = (pMax - pMin) + '%';
       lblMin.textContent = formatSpeedVal(min);
       lblMax.textContent = formatSpeedVal(max);
+      // One shared suffix for both numbers — driven by max, since that's
+      // usually what defines which regime the range is in. In the rare
+      // case where min and max straddle the 1000 threshold on their own,
+      // this is a mockup-level simplification, not a per-number label.
+      if (unitEl) unitEl.textContent = max >= 1000 ? 's' : 'ms';
       thumbMin.classList.toggle('locked', locked);
     }
 
@@ -1117,7 +1152,7 @@
      *  bubble dblclick up to it) collapses the two handles into one at
      *  their current midpoint, or restores the two independent values it
      *  remembered from just before merging. Min/max stay equal while
-     *  merged — see the CSS .speed-thumb.merged-hidden rule, which just
+     *  merged — see the CSS .dslider-thumb.merged-hidden rule, which just
      *  hides the redundant second thumb, not the label showing its value
      *  (both sides keep displaying it, per spec). Disabled while locked
      *  (Perimetro) — that mode already dictates the min handle on its own. */
@@ -1238,6 +1273,80 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
+     SPREAD MACRO  (header, beside the paradigm card) — single-thumb 0–100
+     slider, same drag-anywhere-on-track pattern as the other sliders here.
+     Mockup only (no real DSP), but the value IS meaningful: it's remembered
+     per paradigm (state.spread) and folded into presets (see arcs.js).
+  ════════════════════════════════════════════════════════════════════════ */
+  function initSpreadSelect() {
+    const track = document.getElementById('spread-track');
+    const thumb = document.getElementById('spread-thumb');
+    const dot   = document.getElementById('spread-dot');
+    if (!track || !thumb) return;
+
+    // Dot size/blur read straight off the value instead of two static
+    // narrow/wide icons: small + crisp near 0 (tight, no spread), a bit
+    // bigger + soft near 100 (diffuse, wide spread) — kept modest on both
+    // ends so it never dominates the header.
+    const DOT_MIN = 4, DOT_MAX = 10;   // px
+    const BLUR_MAX = 1.5;              // px
+
+    function render() {
+      const v = state.spread[state.currentModule] || 0;
+      thumb.style.left = v + '%';
+      if (dot) {
+        const t = v / 100;
+        const size = DOT_MIN + t * (DOT_MAX - DOT_MIN);
+        const blur = t * BLUR_MAX;
+        dot.style.width  = size + 'px';
+        dot.style.height = size + 'px';
+        // Skip the filter property entirely at t=0 rather than "blur(0px)"
+        // — cheaper for the browser to have nothing to composite at all.
+        dot.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : '';
+      }
+    }
+
+    function posFromEvent(e) {
+      const rect = track.getBoundingClientRect();
+      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+      return Math.round((x / rect.width) * 100);
+    }
+
+    let dragging = false;
+    track.addEventListener('mousedown', e => {
+      dragging = true;
+      state.spread[state.currentModule] = posFromEvent(e);
+      render();
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      state.spread[state.currentModule] = posFromEvent(e);
+      render();
+    });
+    window.addEventListener('mouseup', () => {
+      if (dragging && window.ArcsAPI) window.ArcsAPI.autosave();
+      dragging = false;
+    });
+
+    render();
+
+    window.SpreadAPI = {
+      // Only the current paradigm's own value — spread is per-paradigm, so
+      // there's no single global value to get/set independent of that.
+      getValue()  { return state.spread[state.currentModule]; },
+      setValue(v) {
+        if (typeof v !== 'number') return;
+        state.spread[state.currentModule] = Math.max(0, Math.min(100, v));
+        render();
+      },
+      // Called from switchModule — refreshes the slider to show whichever
+      // value the NEWLY active paradigm was last left at.
+      refresh: render,
+    };
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
      SLAVE INDICATOR  (diagonal lines, bottom-right of params section)
   ════════════════════════════════════════════════════════════════════════ */
   function drawSlaveIndicator() {
@@ -1341,15 +1450,33 @@
         this.classList.toggle('active', cs.showSpeakers);
         if (window.CircleAPI) window.CircleAPI.draw();
       });
+
+    // Edge tabs — collapse/expand the preset sidebar and the arc colour
+    // boxes. Both default to shown; [hidden] is what CSS actually keys off.
+    document.getElementById('pattern-sidebar-tab')
+      ?.addEventListener('click', function () {
+        const sidebar = document.getElementById('pattern-sidebar');
+        if (!sidebar) return;
+        sidebar.hidden = !sidebar.hidden;
+        this.classList.toggle('collapsed', sidebar.hidden);
+      });
+    document.getElementById('arc-bar-tab')
+      ?.addEventListener('click', function () {
+        const wrap = document.getElementById('arc-btn-bar-wrap');
+        if (!wrap) return;
+        wrap.hidden = !wrap.hidden;
+        this.classList.toggle('collapsed', wrap.hidden);
+      });
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
      RESIZE PANEL SPLIT
   ════════════════════════════════════════════════════════════════════════ */
   function initResize() {
-    const handle = document.getElementById('panel-resize');
-    const circ   = document.querySelector('.circle-section');
-    const body   = document.querySelector('.panel-body');
+    const handle     = document.getElementById('panel-resize');
+    const circ       = document.querySelector('.circle-section');
+    const body       = document.querySelector('.panel-body');
+    const headerLeft = document.querySelector('.header-left');
     if (!handle || !circ || !body) return;
 
     let dragging = false;
@@ -1368,6 +1495,10 @@
       const bodyW = body.getBoundingClientRect().width;
       const newW  = Math.max(200, Math.min(bodyW - 180, startW + (e.clientX - startX)));
       circ.style.flex = `0 0 ${newW}px`;
+      // Keeps the transport card centred over the circle column as it's
+      // resized, not just at the default width (see .header-left in
+      // components.css).
+      if (headerLeft) headerLeft.style.flex = `0 0 ${newW}px`;
     });
 
     window.addEventListener('mouseup', () => {
@@ -1407,6 +1538,7 @@
     initEaseSelect();
     initBrandMenu();
     initSpeedRange();
+    initSpreadSelect();
     if (window.SpeedRangeAPI) window.SpeedRangeAPI.setLocked(state.currentModule === 'perimetro');
     drawSlaveIndicator();
     // Init arc buttons + pattern bar (ArcsAPI defined in arcs.js)

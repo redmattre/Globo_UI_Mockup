@@ -139,7 +139,8 @@ ul { list-style: none; }
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0 var(--pad-x);
+  /* padding: 0 var(--pad-x); */
+  padding: 0 .5rem;
   background: var(--white);
   border-bottom: 1px solid var(--border);
 }
@@ -151,12 +152,16 @@ ul { list-style: none; }
   overflow: hidden;
   min-height: 0;
 }
-/* Draggable divider between circle section and params section */
+/* Draggable divider between circle section and params section — invisible
+   until you're actually near it (hover) or dragging it, since the floating
+   params card (see .params-section) now reads as its own separate surface
+   and doesn't need a permanent line drawn next to it. Same drag JS as
+   always (initResize in app.js) — only the resting appearance changed. */
 .panel-resize-handle {
   width: 3px;
   flex-shrink: 0;
   cursor: col-resize;
-  background: var(--border);
+  background: transparent;
   transition: background 0.15s;
   position: relative;
   z-index: 2;
@@ -173,7 +178,7 @@ ul { list-style: none; }
   flex: 0 0 var(--circle-w);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border);
+  /* border-right: 1px solid var(--border); */
   overflow: hidden;
   min-width: 0;
 }
@@ -184,7 +189,14 @@ ul { list-style: none; }
   flex: 1;
   display: flex;
   align-items: center;
-  /* padding: 12px 6px 10px var(--pad-x); */
+  /* Reserves room on the left for .pattern-sidebar (a floating overlay, see
+     that class) so the circle doesn't render underneath it — same idea as
+     the fixed-width height-control columns already reserving space on the
+     right. Also what re-centres the circle a bit (previously only the
+     right side had a reservation, pulling the visual centre left of true
+     centre) — see .pattern-sidebar-ghost for the matching compensation
+     applied to .az-slider-wrap/.arc-btn-bar-wrap below the circle. */
+  padding-left: 44px;
   /* gap: 8px; */
   overflow: hidden;
   min-height: 0;
@@ -208,8 +220,10 @@ ul { list-style: none; }
   min-width: 0;
   min-height: 0;
   aspect-ratio: 1 / 1;
-  max-height: 95%;
-  max-width: 95%;
+  /* How big the circle (flat) / isometric sphere can grow relative to its
+     wrap — bump these two together to make it bigger or smaller. */
+  max-height: 100%;
+  max-width: 100%;
   overflow: visible;
   display: block;
 }
@@ -282,7 +296,9 @@ ul { list-style: none; }
   display: none;
 }
 
-/* ── PARAMS SECTION (right column) ─────────────────────────────────────────── */
+/* ── PARAMS SECTION (right column) — floating card, not flush with the
+   window edge, so it reads as a separate surface over the app background.
+   Only this side got the floating treatment (not .circle-section). ──────── */
 .params-section {
   flex: 1;
   display: flex;
@@ -290,30 +306,36 @@ ul { list-style: none; }
   position: relative;
   overflow: hidden;
   min-width: 0;
+  margin: 8px 8px 8px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--white);
+  box-shadow: 0 2px 12px rgba(26, 25, 23, 0.08);
+}
+
+/* Speed — shared by every movement paradigm, so it's a persistent row
+   pinned above .module-params rather than part of the per-paradigm HTML
+   modules.js swaps in and out (which would otherwise wipe it on every
+   paradigm switch). */
+.params-speed-row {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px var(--pad-x) 0;
 }
 
 .module-params {
   flex: 1;
-  padding: 16px var(--pad-x) 12px;
+  padding: 12px var(--pad-x) 12px;
   overflow-y: auto;
   overflow-x: hidden;
-}
-
-.params-footer {
-  flex: 0 0 var(--footer-h);
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  width: 100%;
-  /* padding: 0 var(--pad-x); */
-  border-top: 1px solid var(--border);
-  background: var(--white);
 }
 
 /* Slave diagonal-line indicator – absolute, bottom-right corner */
 .slave-canvas {
   position: absolute;
-  bottom: var(--footer-h);  /* sits just above the footer */
+  bottom: 0;
   right: 0;
   pointer-events: none;
 }

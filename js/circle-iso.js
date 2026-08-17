@@ -805,7 +805,14 @@
   }
 
   function onIsoUp() {
-    if (dragState !== null && window.ArcsAPI) window.ArcsAPI.autosave();
+    if (dragState !== null && window.ArcsAPI) {
+      // Same gap as circle.js's onUp: resizing a zone here changes its
+      // span without going through toggleArc, so anything depending on
+      // the current span (Perimetro's Transfer Ease/Decay gating) needs
+      // an explicit refresh, not just autosave.
+      window.ArcsAPI.updateArcButtons();
+      window.ArcsAPI.autosave();
+    }
     dragState = null;
     rotateDragState = null;
     document.body.classList.remove('circle-iso-rotating');
@@ -874,7 +881,10 @@
             if (!wouldOverlapIso(arcIdx, cL, cR)) { arc.left = cL; arc.right = cR; }
           }
         }
-        if (window.ArcsAPI) window.ArcsAPI.autosave();
+        if (window.ArcsAPI) {
+          window.ArcsAPI.updateArcButtons();
+          window.ArcsAPI.autosave();
+        }
         if (window.ArcsAPI && window.AppBridge) {
           cs.positionAngle = window.ArcsAPI.computePositionAngle(window.AppBridge.getReadheadPos());
         }

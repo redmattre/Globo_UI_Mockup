@@ -28,14 +28,14 @@
   // it back to zero width. See isArcOn().
   window.CircleState = {
     arcs: [
-      { left: 0, right: 359.9, heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
-      { left: 0, right: 0,     heightMin: 0, heightMax: 0, heightMode: 'hemisphere' },
+      { left: 0, right: 359.9, heightMin: 0, heightMax: 90, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 90, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 90, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 90, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 90, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 90, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 90, heightMode: 'hemisphere' },
+      { left: 0, right: 0,     heightMin: 0, heightMax: 90, heightMode: 'hemisphere' },
     ],
     selected:  0,    // last interacted arc (height slider / patterns)
     hovered:  -1,    // arc index the mouse is over right now (-1 = none)
@@ -251,7 +251,7 @@
     arc.left       = roundAzimuth(c - half);
     arc.right      = roundAzimuth(c + half);
     arc.heightMin  = 0;
-    arc.heightMax  = 0;
+    arc.heightMax  = 90;
     arc.heightMode = 'hemisphere';
     return true;
   }
@@ -879,7 +879,15 @@
   }
 
   function onUp() {
-    if (dragging !== null && window.ArcsAPI) window.ArcsAPI.autosave();
+    if (dragging !== null && window.ArcsAPI) {
+      // Resizing a zone (trim/origin/centroid drag) changes its span
+      // without ever going through toggleArc/onSVGClick — anything that
+      // depends on the CURRENT span (e.g. Perimetro's Transfer Ease/Decay
+      // gating, see updateArcButtons in arcs.js) was going stale until some
+      // unrelated event (a hover change) happened to refresh it.
+      window.ArcsAPI.updateArcButtons();
+      window.ArcsAPI.autosave();
+    }
     dragging   = null;
     dragArcIdx = -1;
   }
@@ -1005,7 +1013,10 @@
           }
         }
 
-        if (window.ArcsAPI) window.ArcsAPI.autosave();
+        if (window.ArcsAPI) {
+          window.ArcsAPI.updateArcButtons();
+          window.ArcsAPI.autosave();
+        }
         if (window.ArcsAPI && window.AppBridge)
           cs.positionAngle = window.ArcsAPI.computePositionAngle(window.AppBridge.getReadheadPos());
         draw();

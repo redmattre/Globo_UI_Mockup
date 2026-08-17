@@ -3,7 +3,7 @@
 - [ ] Aggiungere ad aleatorio e alle traverse la feature di rendere discreto e basato sulle posizioni degli altoparlanti il random
 - [x] Costruire paradigma segmenti
 	- [ ] bozza da rivedere (sopratutto per la quantità di controlli)
-- [ ] Costruire paradigma traverse
+- [ ] Costruire paradigma traverse (serve?)
 - [ ] Costruire encoding Ambisonic
 - [ ] Costruire algoritmo Direct
 - [ ] Costruire algoritmo DBAP (Necessario? Sensato?)

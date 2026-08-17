@@ -61,8 +61,10 @@
   }
 
   /** Full snapshot saved into a pattern slot: arcs, subgroups, which movement
-   *  paradigm is active (with its own parameters), speed range and transport
-   *  (loop/direction) toggle state. */
+   *  paradigm is active (with its own parameters — including the spread
+   *  macro, which is per-paradigm but lives in the header, not inside
+   *  #module-params, so it needs its own field here), speed range and
+   *  transport (loop/direction) toggle state. */
   function snapshotState() {
     return {
       arcs:         deepCopyArcs(),
@@ -70,19 +72,21 @@
       module:       window.AppBridge   ? window.AppBridge.getCurrentModule()      : undefined,
       moduleParams: window.ModulesAPI  ? window.ModulesAPI.snapshotModuleParams() : {},
       speed:        window.SpeedRangeAPI ? window.SpeedRangeAPI.getValues()       : null,
+      spread:       window.SpreadAPI     ? window.SpreadAPI.getValue()            : null,
       loop:      !!document.getElementById('loop-toggle')?.classList.contains('active'),
       direction: !!document.getElementById('direction-toggle')?.classList.contains('active'),
     };
   }
 
-  /** Applies the module/params/speed/transport part of a snapshot (arcs and
-   *  subgroups are handled separately by the caller). */
+  /** Applies the module/params/speed/spread/transport part of a snapshot
+   *  (arcs and subgroups are handled separately by the caller). */
   function applyFullState(s) {
     if (s.module && window.AppBridge && window.AppBridge.switchModule) {
       window.AppBridge.switchModule(s.module, { skipAutosave: true });
     }
     if (window.ModulesAPI) window.ModulesAPI.applyModuleParams(s.moduleParams);
     if (s.speed && window.SpeedRangeAPI) window.SpeedRangeAPI.setValues(s.speed);
+    if (typeof s.spread === 'number' && window.SpreadAPI) window.SpreadAPI.setValue(s.spread);
 
     const loopBtn = document.getElementById('loop-toggle');
     if (loopBtn) loopBtn.classList.toggle('active', !!s.loop);
@@ -142,6 +146,24 @@
         ? 'click: spegni'
         : capped ? 'Traversa: massimo 4 zone attive' : 'click: accendi');
     });
+
+    // Perimetro: Transfer Ease/Transfer Decay only mean anything if the
+    // point actually crosses a zone boundary as it goes around. The only
+    // case with no boundary at all is a single active zone spanning the
+    // full 360° — with more than one zone (however wide each is) there's
+    // always at least one boundary between them, so both rows stay
+    // enabled (same .disabled-ui convention as the Traversa cap above,
+    // just the opposite direction).
+    if (cs.module === 'perimetro') {
+      const active = cs.arcs.filter(a => window.CircleAPI.isArcOn(a));
+      const singleFullCircle = active.length === 1 &&
+        ((((active[0].right - active[0].left) % 360) + 360) % 360) >= 359;
+      ['p-transfer-ease-track', 'p-transfer-decay'].forEach(function (id) {
+        const el  = document.getElementById(id);
+        const row = el && el.closest('.param-row');
+        if (row) row.classList.toggle('disabled-ui', singleFullCircle);
+      });
+    }
   }
 
   /** Turning on auto-places the zone in the largest free gap (no cursor
@@ -209,12 +231,20 @@
       speed = t < 0.5 ? srcLo.speed : srcHi.speed;
     }
 
+    // Spread is a plain number too — same smooth-lerp treatment as speed.
+    var spread = null;
+    if (typeof srcLo.spread === 'number' && typeof srcHi.spread === 'number') {
+      spread = srcLo.spread + (srcHi.spread - srcLo.spread) * t;
+    } else {
+      spread = t < 0.5 ? srcLo.spread : srcHi.spread;
+    }
+
     var loop      = t < 0.5 ? srcLo.loop      : srcHi.loop;
     var direction = t < 0.5 ? srcLo.direction : srcHi.direction;
 
     return {
       arcs: arcs, subgroups: subgroups, module: module, moduleParams: moduleParams,
-      speed: speed, loop: loop, direction: direction,
+      speed: speed, spread: spread, loop: loop, direction: direction,
     };
   }
 
@@ -298,8 +328,9 @@
   function updatePatternSlider() {
     var thumb = document.getElementById('pattern-thumb');
     if (thumb) {
-      // Center of slot i is at (i + 0.5) / 16 of track width
-      thumb.style.left = ((patternPos + 0.5) / 16 * 100).toFixed(3) + '%';
+      // Center of slot i is at (i + 0.5) / 16 of track length — the
+      // sidebar is vertical now, so this positions via top, not left.
+      thumb.style.top = ((patternPos + 0.5) / 16 * 100).toFixed(3) + '%';
     }
     var count = filledCount();
     document.querySelectorAll('.pslot').forEach(function (el) {
@@ -422,8 +453,8 @@
        range — dropping on itself is a no-op. ── */
     function slotIndexFromEvent(e) {
       var rect = bar.getBoundingClientRect();
-      var x = (e.clientX - rect.left) / rect.width;
-      return Math.max(0, Math.min(15, Math.floor(x * 16)));
+      var y = (e.clientY - rect.top) / rect.height;
+      return Math.max(0, Math.min(15, Math.floor(y * 16)));
     }
 
     bar.addEventListener('mousedown', function (e) {
@@ -475,9 +506,9 @@
 
     function posFromEvent(e) {
       var rect = track.getBoundingClientRect();
-      var x = (e.clientX - rect.left) / rect.width;
+      var y = (e.clientY - rect.top) / rect.height;
       // Each slot occupies 1/16; slot i centre at (i+0.5)/16
-      return Math.max(0, Math.min(15, x * 16 - 0.5));
+      return Math.max(0, Math.min(15, y * 16 - 0.5));
     }
 
     track.addEventListener('mousedown', function (e) {

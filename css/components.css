@@ -3,11 +3,42 @@
    All reusable UI component styles
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ── HEADER LEFT ZONE ───────────────────────────────────────────────────────
+   Sized to match .circle-section's own default width (var(--circle-w)) so
+   .transport-card can be centred over the circle column specifically —
+   not the whole header, which also spans the params column on the right.
+   Kept in sync with the resizable divider by initResize() in app.js
+   (approximate: it tracks .circle-section's width, not circle-area's own
+   content centre, which sits a touch further right because of the
+   pattern-sidebar's padding-left reservation — close enough here). */
+.header-left {
+  position: relative;
+  flex: 0 0 var(--circle-w);
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+/* Pulled out of flow so it doesn't compete for space with the centred
+   transport card — stays pinned to the corner regardless. */
+.header-left .brand-select {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.header-left .transport-card {
+  margin: 0 auto;
+}
+
 /* ── BRAND LOGO + CREDITS (panel header, left of the arc buttons) ───────────── */
 .brand-select {
   position: relative;
   flex: 0 0 auto;
   margin-right: 4px;
+  margin-left: 0;
+  padding-left: 0;
+  cursor: pointer;
 }
 .brand-btn {
   display: flex;
@@ -348,26 +379,49 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   /* color: #fff; */
 }
 
-/* ── PARADIGM SELECT (dropdown at top of params section, replacing the old
-   icon-only tab bar — a plain label + text menu instead of unlabeled
-   symbols) ──────────────────────────────────────────────────────────────── */
-.module-select {
-  position: relative;
-  /* flex: 0 0 auto; */
+/* ── TRANSPORT CARD (header) — play/pause, the paradigm dropdown, loop and
+   direction, deconstructed from the old params-footer + bottom-of-panel
+   dropdown and rebuilt as one bordered card: play on the left, paradigm
+   name centred (click for the same dropdown pattern used everywhere else
+   — .module-choice etc.), loop/direction on the right. Replaces the old
+   horizontal preset bar in this exact spot (that's now the vertical
+   .pattern-sidebar on the circle). ─────────────────────────────────────── */
+.transport-card {
+  /* margin-left: 1.5rem; */
+  flex: 0 1 24rem;
+  min-width: 0;
   display: flex;
-  justify-content: right;
-  padding: 5px var(--pad-x);
-  border-top: 1px solid var(--border);
-  background: var(--white);
-}
-.module-btn {
-  height: 1rem;
-  padding: 0 8px;
-  font-size: small;
-  display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: var(--sz-base);
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  background: var(--white);
+}
+
+.transport-group-mini {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+/* ── PARADIGM SELECT (now inline in .transport-card, centred — a plain
+   label + text menu instead of unlabeled symbols) ────────────────────────── */
+.module-select {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+.module-btn {
+  max-width: 100%;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--sz-md);
   font-weight: 400;
   color: var(--ink);
   background: transparent;
@@ -379,18 +433,13 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 .module-btn:hover { background: var(--ink-fill); }
 .module-btn.open  { background: var(--ink-fill); }
 
-.module-btn-chevron {
-  width: 11px;
-  height: 11px;
-  flex-shrink: 0;
-  transition: transform 0.12s;
-}
-.module-btn.open .module-btn-chevron { transform: rotate(180deg); }
-
+/* Opens downward now that the card lives at the top of the window (used to
+   open upward, back when this dropdown sat at the bottom of the panel). */
 .module-menu {
   position: absolute;
-  bottom: calc(100% + 4px);
-  right: var(--pad-x);
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
   min-width: 8rem;
   display: flex;
   flex-direction: column;
@@ -418,6 +467,68 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   opacity: 0.28;
   pointer-events: none;
   font-style: italic;
+}
+
+/* ── SPREAD MACRO (header, beside the VBAP/DBAP algorithm button) — a
+   per-paradigm mockup value (see state.spread / window.SpreadAPI in
+   app.js). Styled identically to the readhead (testina) sliders —
+   .az-slider-track/.az-slider-thumb — same thin flat track, same flat-pill
+   thumb, no colour fill: a plain position indicator, not a progress bar.
+   A single live dot sits after the track instead of two static flanking
+   icons — see .spread-indicator/.spread-dot below. ───────────────────── */
+.spread-select {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 4px;
+  padding-right: 8px;
+  border-right: 1px solid var(--border);
+}
+.spread-lbl {
+  font-size: var(--sz-xs);
+  color: var(--text-3);
+}
+.spread-track {
+  position: relative;
+  width: 6rem;
+  height: .25rem;
+  background: var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.spread-thumb {
+  position: absolute;
+  top: 50%;
+  width: .5rem;
+  height: .25rem;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--white);
+}
+
+/* Fixed bounding box so the growing/shrinking dot inside never nudges the
+   rest of the header row — only .spread-dot itself resizes (see render()
+   in initSpreadSelect, app.js, which sets width/height/filter inline). */
+.spread-indicator {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.spread-dot {
+  display: block;
+  border-radius: 50%;
+  background: var(--text-3);
+  /* No transition: it's already updated on every drag tick (see render()
+     in initSpreadSelect, app.js), so an eased transition on top of that
+     just fights the live updates and makes the blur filter re-animate
+     continuously while dragging — snapping straight to the new size/blur
+     reads as more responsive, not less smooth. */
 }
 
 /* ── GS TOGGLE (global / stray) ─────────────────────────────────────────────── */
@@ -529,13 +640,18 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 .param-slider::-webkit-slider-thumb,
 .rh-force-slider::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
-  width: 4px; height: 15px; margin-top: -6.5px;
+  /* Same 4×10 thumb as .dslider-thumb (the double/exp-slider's custom
+     track) so every slider type in module-params reads at the same
+     visual weight — this used to be 15px tall (margin-top -6.5px to
+     centre it on the 2px track) while .dslider-thumb was already 10px,
+     which is what made some sliders look "longer" than others. */
+  width: 4px; height: 10px; margin-top: -4px;
   background: var(--ink); border: none; border-radius: 0;
   transition: background 0.1s;
 }
 .param-slider::-moz-range-thumb,
 .rh-force-slider::-moz-range-thumb {
-  width: 4px; height: 15px; background: var(--ink); border: none; border-radius: 0;
+  width: 4px; height: 10px; background: var(--ink); border: none; border-radius: 0;
 }
 .param-slider:hover::-webkit-slider-thumb,
 .rh-force-slider:hover::-webkit-slider-thumb { background: #000; }
@@ -859,10 +975,12 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
 }
 
 .param-name {
-  font-size: var(--sz-base);
+  /* font-size: var(--sz-base); */
+  font-size: x-large;
   color: var(--text-2);
   min-width: 88px;
   flex-shrink: 0;
+  /* color: red; */
 }
 
 .param-slider {
@@ -882,6 +1000,47 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   min-width: 32px;
   text-align: right;
   flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── PARADIGM PARAMS layout (module-params + the persistent Speed row
+   above it) — smaller label, freeing more width for the control itself,
+   and a touch of breathing room that scales gently with the window size
+   (clamped so it never gets cramped or comically wide). Scoped here
+   rather than on the base .param-row/.param-name so the Audio/Generali/
+   Rig tabs in the secondary panel, which reuse those same base classes,
+   are unaffected. ─────────────────────────────────────────────────────── */
+.module-params .param-row,
+.params-speed-row {
+  gap: clamp(4px, 0.6vw, 10px);
+  /* Every row — single slider, double slider, toggle — gets the exact
+     same line height regardless of which control sits inside it, so a
+     double slider's row never reads as taller/more spaced than its
+     neighbours just because its own track/thumbs are shaped differently. */
+  min-height: 16px;
+}
+.module-params .param-row {
+  margin-bottom: clamp(6px, 1vh, 12px);
+}
+.module-params .param-name,
+.params-speed-row .param-name {
+  font-size: 9px;
+  width: 68px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Fixed (not just minimum) width, same for every row type — a single
+   value ("73%") and a double-slider's pair+unit ("40 – 120ms") both sit in
+   the identical column, so the control/track next to it is always the
+   same length regardless of which type is showing. */
+.module-params .param-value,
+.params-speed-row .param-value {
+  font-size: 9px;
+  width: 50px;
+  min-width: 0;
 }
 
 /* A param-row whose label is too long to sit on one line next to its
@@ -912,30 +1071,31 @@ body.circle-iso-rotating, body.circle-iso-rotating * { cursor: grabbing !importa
   border-color: var(--ink);
 }
 
-/* ── SEGMENTED CONTROL ──────────────────────────────────────────────────────── */
-.seg-control {
+/* ── TOGGLE / MULTITOGGLE ──────────────────────────────────────────────────────
+   Same widget either way — a toggle IS a multitoggle with exactly two
+   segments. No text inside the segments themselves: the active choice's
+   own label shows in the row's value slot on the right instead, the same
+   spot every other param row type shows its value in (see toggleRow in
+   modules.js). Fills the row's control area like the sliders do. ───────── */
+.mtoggle {
+  flex: 1;
+  min-width: 0;
   display: flex;
+  height: 16px;
   border: 1px solid var(--border-strong);
   border-radius: var(--r);
   overflow: hidden;
-  flex-shrink: 0;
 }
-.seg-btn {
+.mtoggle-seg {
   flex: 1;
-  padding: 4px 7px;
-  font-size: var(--sz-sm);
-  color: var(--text-2);
+  min-width: 0;
   background: transparent;
   border-right: 1px solid var(--border);
-  white-space: nowrap;
-  transition: background 0.1s, color 0.1s;
+  transition: background 0.1s;
 }
-.seg-btn:last-child { border-right: none; }
-.seg-btn.active {
-  background: var(--ink);
-  color: #fff;
-}
-.seg-btn:hover:not(.active) { background: var(--ink-fill); }
+.mtoggle-seg:last-child { border-right: none; }
+.mtoggle-seg:hover:not(.active) { background: var(--ink-fill); }
+.mtoggle-seg.active { background: var(--ink); }
 
 /* ── SVG HANDLES (circle) ──────────────────────────────────────────────────── */
 .svg-handle { cursor: grab; }
@@ -1339,6 +1499,26 @@ body.rig-viz-rotating, body.rig-viz-rotating * { cursor: grabbing !important; us
   margin-top: .5rem;
   background: var(--surface);
   max-height: fit-content;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.14s ease, visibility 0s linear 0s;
+}
+/* Collapsing this via display:none would remove it from .circle-section's
+   flex column, letting .circle-area (flex:1) grow to fill the freed height
+   and shove .az-slider-wrap down with it. visibility:hidden keeps the row's
+   height reserved instead, so nothing above/below it shifts — only the
+   colour boxes themselves disappear. display:flex re-asserted because
+   [hidden] alone would still lose to the plain display:flex rule above at
+   equal specificity (same gotcha as .circle-svg[hidden] elsewhere). Opacity
+   does the actual fade; visibility's own transition is delayed until the
+   fade-out finishes so it doesn't just snap away — same show/hide-with-a-
+   fade recipe as .arc-btn-bar-wrap[hidden] and .pattern-sidebar[hidden]. */
+.arc-btn-bar-wrap[hidden] {
+  display: flex;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.14s ease, visibility 0s linear 0.14s;
 }
 
 .arc-btn-bar {
@@ -1358,6 +1538,18 @@ body.rig-viz-rotating, body.rig-viz-rotating * { cursor: grabbing !important; us
   flex: 0 0 auto;
   width: 2rem;
   margin-right: .7rem;
+  visibility: hidden;
+}
+
+/* Invisible — mirrors .pattern-sidebar's own footprint on the left (see
+   .circle-area's padding-left) so centred content (the arc buttons, the
+   azimuth slider) lines up with the circle's actual (now more centred)
+   position instead of the row's full width. Half of .circle-area's
+   padding-left, since centring within a row that has extra space on ONE
+   side only shifts the centre by half that extra space. */
+.pattern-sidebar-ghost {
+  flex: 0 0 auto;
+  width: 22px;
   visibility: hidden;
 }
 
@@ -1396,21 +1588,44 @@ body.rig-viz-rotating, body.rig-viz-rotating * { cursor: grabbing !important; us
   opacity: 1;
 }
 
-/* ── Pattern presets (lives inside panel-header) ──────────────────────────── */
-.pattern-bar-wrap {
-  flex: 1;
-  min-width: 0;
+/* ── Pattern presets ("mega slider") — floats over the circle's left edge,
+   between #pair-btn (above) and #speaker-viz-toggle (below), in the same
+   left:8px column. Same widget as before (16 numbered slots + a morph
+   track to blend between them), just rotated 90°: the slot row is now a
+   slot column, and the morph track sits beside it instead of underneath
+   it. Collapses via #pattern-sidebar-tab (see .edge-tab below). ─────────── */
+.pattern-sidebar {
+  position: absolute;
+  left: 8px;
+  top: 42px;    /* clears #pair-btn (26px + 8px inset + 8px gap) */
+  bottom: 42px; /* clears #speaker-viz-toggle, same footprint */
+  width: 32px;
+  z-index: 5;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 3px;
-  max-width: 50rem;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.14s ease, visibility 0s linear 0s;
+}
+/* Same fade recipe as .arc-btn-bar-wrap[hidden]: opacity does the fade,
+   visibility's transition is delayed until the fade-out finishes so the
+   sidebar doesn't just snap away, display:flex re-asserted since it's
+   absolutely positioned anyway and doesn't need display:none to avoid
+   reserving layout space. */
+.pattern-sidebar[hidden] {
+  display: flex;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.14s ease, visibility 0s linear 0.14s;
 }
 
-.pattern-bar {
+.pattern-bar-v {
   position: relative;
-  width: 100%;
+  flex: 1;
   display: flex;
-  height: 1.25rem;
+  flex-direction: column;
   cursor: pointer;
   user-select: none;
   border-radius: 3px;
@@ -1420,19 +1635,19 @@ body.rig-viz-rotating, body.rig-viz-rotating * { cursor: grabbing !important; us
 /* Individual slot marker */
 .pslot {
   flex: 1;
-  text-align: center;
+  display: flex;
+  align-items: center;
   justify-content: center;
   font-size: 8px;
   font-family: var(--font-mono);
   color: var(--text-3);
-  line-height: 1.25rem;
-  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   background: var(--surface);
   transition: background 0.07s, color 0.07s;
   position: relative;
   z-index: 0;
 }
-.pslot:first-child { border-left: 1px solid var(--border); }
+.pslot:first-child { border-top: 1px solid var(--border); }
 
 /* Slot has saved arc data */
 .pslot.filled { color: var(--text-2); background: var(--bg); }
@@ -1468,23 +1683,24 @@ body.rig-viz-rotating, body.rig-viz-rotating * { cursor: grabbing !important; us
 
 body.reordering-preset, body.reordering-preset * { cursor: grabbing !important; user-select: none; }
 
-/* Morph track — thick "underline" beneath the numbers; drag the darker
-   thumb inside it to blend continuously between existing presets. */
-.pattern-morph-track {
+/* Morph track — thin bar beside the slot column; drag the darker thumb
+   inside it to blend continuously between existing presets. */
+.pattern-morph-track-v {
   position: relative;
-  width: 100%;
-  height: .25rem;
+  flex: 0 0 auto;
+  width: .25rem;
+  height: 100%;
   background: var(--border);
   border-radius: 4px;
   cursor: pointer;
   user-select: none;
 }
 
-.pattern-morph-thumb {
+.pattern-morph-thumb-v {
   position: absolute;
-  top: 50%;
-  width: .5rem;
-  height: .25rem;
+  left: 50%;
+  width: .25rem;
+  height: .5rem;
   border-radius: 50%;
   background: var(--ink);
   transform: translate(-50%, -50%);
@@ -1492,34 +1708,84 @@ body.reordering-preset, body.reordering-preset * { cursor: grabbing !important; 
   box-shadow: 0 0 0 2px var(--white);
 }
 
-/* ── UNIFIED SPEED RANGE (params footer, dual-handle min/max) ────────────────── */
-.speed-range {
-  flex: 1;
-  min-width: 0;
+/* ── EDGE TABS — collapse/expand the mega slider (left) and the arc colour
+   boxes (bottom). Plain grey triangle poking out from the edge — no button
+   chrome (no box/border/background), drawn with the CSS border-triangle
+   trick on ::before so there's no icon markup to keep in sync. The button
+   itself is a slightly bigger, invisible hit-area around the small visible
+   triangle, so it stays easy to click without looking bulky. ────────────── */
+.edge-tab {
+  position: absolute;
+  z-index: 6;
   display: flex;
   align-items: center;
-  gap: .25rem;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
 }
-.speed-val {
-  flex-shrink: 0;
-  min-width: 20px;
-  text-align: center;
-  font-size: var(--sz-xs);
-  color: var(--text-3);
+.edge-tab::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  transition: border-color 0.12s, transform 0.12s;
 }
-.speed-track {
+.edge-tab-left {
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 22px;
+}
+.edge-tab-left::before {
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 6px solid var(--border-strong);
+}
+.edge-tab-left:hover::before { border-right-color: var(--text-2); }
+/* Flips to point the other way once the sidebar is collapsed — always
+   points in the direction that would reveal more. */
+.edge-tab-left.collapsed::before { transform: scaleX(-1); }
+.edge-tab-bottom {
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 10px;
+}
+/* Points down (toward its own edge), same convention as .edge-tab-left
+   pointing left (toward its own edge) — flips up once collapsed. */
+.edge-tab-bottom::before {
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--border-strong);
+}
+.edge-tab-bottom:hover::before { border-top-color: var(--text-2); }
+.edge-tab-bottom.collapsed::before { transform: scaleY(-1); }
+
+/* ── DOUBLE SLIDER (dual-handle min/max range) ─────────────────────────────────
+   Shared by the persistent Speed row and any per-paradigm double-slider
+   param (see doubleSliderRow in modules.js). Speed's own exponential-curve/
+   merge/lock behaviour (initSpeedRange in app.js) only ever touches these
+   elements by id, never by class, so the same look is free to be reused
+   as-is for plain linear double sliders elsewhere. */
+.dslider-track {
   position: relative;
   flex: 1;
+  min-width: 0;
   height: 2px;
   background: var(--border-strong);
+  cursor: pointer;
 }
 /* Generous invisible hit area — the visible track is only 2px tall, far
    thinner than a comfortable click/double-click target. A ::before still
-   counts as part of .speed-track for event purposes (its target resolves
+   counts as part of .dslider-track for event purposes (its target resolves
    to the real element), so drag/dblclick anywhere in this taller zone
    works exactly like clicking the thin line itself, not just wherever a
    thumb happens to be sitting. */
-.speed-track::before {
+.dslider-track::before {
   content: '';
   position: absolute;
   top: -8px;
@@ -1527,76 +1793,95 @@ body.reordering-preset, body.reordering-preset * { cursor: grabbing !important; 
   left: 0;
   right: 0;
 }
-.speed-fill {
+.dslider-fill {
   position: absolute;
   top: 0;
   height: 100%;
   background: var(--ink);
 }
-.speed-thumb {
+.dslider-thumb {
   position: absolute;
   top: 50%;
   width: 4px;
-  height: 15px;
+  height: 10px;
   background: var(--ink);
   transform: translate(-50%, -50%);
   cursor: ew-resize;
   transition: background 0.1s;
 }
-.speed-thumb:hover { background: #000; }
-.speed-thumb.locked {
+.dslider-thumb:hover { background: #000; }
+.dslider-thumb.locked {
   background: var(--border-strong);
   cursor: not-allowed;
 }
-/* Double-click merges min/max into one value (see toggleMerge in app.js) —
-   only the redundant second thumb hides; the labels on both sides keep
-   showing the (now-shared) value. */
-.speed-thumb.merged-hidden { display: none; }
+/* Double-click merges min/max into one value (Speed only — see toggleMerge
+   in app.js) — only the redundant second thumb hides; the value on the
+   right keeps showing the (now-shared) number on both sides of the dash. */
+.dslider-thumb.merged-hidden { display: none; }
 
-/* ── TRANSPORT GROUP (loop / direction / play, params footer) ────────────────── */
-.transport-group {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin-right: 4px;
+/* Value pair to the right of the track: two numbers with a dash between —
+   same slot every other row type shows its own single value in. Also a
+   flex container itself (for the centred dash + gap), so justify-content
+   does the right-alignment here — .param-value's own text-align has no
+   effect once its display switches to flex. */
+.dslider-val {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 3px;
+}
+.dslider-sep { color: var(--text-3); }
+
+/* Unit-of-measure suffix, tight against whatever value it follows (single
+   slider or double-slider pair) — see sliderRow/doubleSliderRow in
+   modules.js and the Speed row in index.html. Static text for most
+   params; Speed's own copy (#speed-unit) is the one exception that
+   updates live between "ms"/"s" (see initSpeedRange in app.js). */
+.unit-suffix {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--text-3);
+  margin-left: 1px;
+  flex-shrink: 0;
 }
 
+/* ── TRANSPORT GROUP (loop / direction, in .transport-group-mini) — sized
+   to sit inside the slimmer .transport-card, no border/box chrome so they
+   read as small inline icons rather than standalone buttons. ───────────── */
 .transport-btn {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-2);
-  background: var(--white);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r);
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  background: transparent;
+  border: none;
+  border-radius: var(--r-sm);
+  transition: background 0.12s, color 0.12s;
 }
-.transport-btn .ico { width: 15px; height: 15px; }
+.transport-btn .ico { width: 11px; height: 11px; }
 .transport-btn:hover { background: var(--ink-fill); }
 .transport-btn.active {
   background: var(--ink);
   color: #fff;
-  border-color: var(--ink);
 }
 
 .transport-toggle {
-  flex: 0 0 26px;
-  width: 26px;
-  height: 26px;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--white);
   background: var(--ink);
   border: 1px solid var(--ink);
-  border-radius: var(--r);
+  border-radius: var(--r-sm);
   transition: background 0.12s, color 0.12s, transform 0.08s;
 }
 .transport-toggle:hover   { /*background: var(--accent);*/ border-color: var(--accent); }
 .transport-toggle:active  { transform: scale(0.94); }
-.transport-toggle .ico { display: none; width: 15px; height: 15px; }
+.transport-toggle .ico { display: none; width: 10px; height: 10px; }
 .transport-toggle[data-state="paused"]  .ico-play  { display: block; }
 .transport-toggle[data-state="playing"] .ico-pause { display: block; }
